@@ -119,10 +119,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
     fontSize: size,
     color,
     lineHeight: 1.85 as number,
-    maxWidth: "34rem",
     textShadow: "0 1px 8px rgba(0,0,0,0.5)",
-    wordBreak: "break-word" as const,
-    overflowWrap: "break-word" as const,
   });
 
   const sceneNumeral = () => ({
@@ -227,7 +224,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.08} exitAt={0.13}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left", paddingRight: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Everything starts with knowing what you have. Not guessing. Not assuming. Counting.
@@ -236,7 +233,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.11} exitAt={0.155}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right", paddingLeft: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Forty-five repositories. Eighty-five models. Dozens of skills. Sixty-nine deployed sites.
@@ -273,7 +270,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.25} exitAt={0.30}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left", paddingRight: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             The craft is not doing everything yourself. The craft is knowing what stays human
@@ -283,7 +280,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.28} exitAt={0.33}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right", paddingLeft: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Architecture, client trust, narrative voice -- these require judgment.
@@ -321,7 +318,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.42} exitAt={0.47}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left", paddingRight: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Four streams running simultaneously. Client deliverables compiling while images generate.
@@ -331,7 +328,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.45} exitAt={0.50}>
-        <div className={`${px} max-w-lg relative`} style={{ textAlign: "right", paddingLeft: "30%" }}>
+        <div className={`${px} max-w-lg relative`} style={{ textAlign: "right" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Each stream autonomous. Each result verified before it enters the next.
@@ -370,7 +367,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.59} exitAt={0.64}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left", paddingRight: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Only assert what you directly observed. Not what you expected the code to produce.
@@ -380,7 +377,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.62} exitAt={0.67}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right", paddingLeft: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Forty-one thousand rows means forty-one thousand rows.
@@ -417,7 +414,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.76} exitAt={0.81}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left", paddingRight: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "left" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Sixty-nine sites deployed. One LLC filed. Two paying clients.
@@ -427,7 +424,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
       </TextSection>
 
       <TextSection progress={progress} enterAt={0.79} exitAt={0.84}>
-        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right", paddingLeft: "30%" }}>
+        <div className={`${px} max-w-xl relative`} style={{ textAlign: "right" }}>
           <Backdrop />
           <p style={sans(bodySize)}>
             Not a portfolio -- an operating system.
