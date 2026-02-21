@@ -73,10 +73,9 @@ export function DecisionParticles({
       <pointsMaterial
         vertexColors
         transparent
-        opacity={0.5}
-        size={2}
+        opacity={0.25}
+        size={1.5}
         sizeAttenuation
-        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </points>
@@ -114,9 +113,8 @@ export function DecisionDivider({ progress }: { progress: number }) {
         color="#F5F0E8"
         transparent
         opacity={0}
-        size={2}
+        size={1.5}
         sizeAttenuation
-        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </points>
@@ -132,11 +130,11 @@ export function DecisionGlow({ progress }: { progress: number }) {
     const converge = smoothstep(sceneP);
     [leftRef, rightRef].forEach((ref) => {
       if (!ref.current) return;
-      const s = 0.2 + converge * 0.5;
+      const s = 0.15 + converge * 0.3;
       ref.current.scale.set(s, s, s);
-      (ref.current.material as THREE.MeshStandardMaterial).opacity = converge * 0.08;
+      (ref.current.material as THREE.MeshStandardMaterial).opacity = converge * 0.04;
       (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        0.3 + converge * 0.8;
+        0.1 + converge * 0.2;
     });
   });
 
@@ -146,11 +144,10 @@ export function DecisionGlow({ progress }: { progress: number }) {
         <sphereGeometry args={[1, 24, 24]} />
         <meshStandardMaterial
           emissive="#F5F0E8"
-          emissiveIntensity={0.5}
-          color="#000000"
+          emissiveIntensity={0.3}
+          color="#0d0a1a"
           transparent
           opacity={0}
-          blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -158,11 +155,10 @@ export function DecisionGlow({ progress }: { progress: number }) {
         <sphereGeometry args={[1, 24, 24]} />
         <meshStandardMaterial
           emissive="#00E5FF"
-          emissiveIntensity={0.5}
-          color="#000000"
+          emissiveIntensity={0.3}
+          color="#0d0a1a"
           transparent
           opacity={0}
-          blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </mesh>

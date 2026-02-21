@@ -79,10 +79,9 @@ export function AssemblyStreams({
       <pointsMaterial
         vertexColors
         transparent
-        opacity={0.45}
-        size={2}
+        opacity={0.2}
+        size={1.5}
         sizeAttenuation
-        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </points>
@@ -95,11 +94,11 @@ export function AssemblyCore({ progress }: { progress: number }) {
   useFrame(() => {
     const sceneP = Math.max(0, Math.min(1, (progress - 0.37) / 0.15));
     if (!ref.current) return;
-    const s = 0.15 + sceneP * 0.6;
+    const s = 0.1 + sceneP * 0.3;
     ref.current.scale.set(s, s, s);
     const mat = ref.current.material as THREE.MeshStandardMaterial;
-    mat.emissiveIntensity = 0.2 + sceneP * 0.6;
-    mat.opacity = 0.08 + sceneP * 0.15;
+    mat.emissiveIntensity = 0.1 + sceneP * 0.15;
+    mat.opacity = 0.03 + sceneP * 0.05;
   });
 
   return (
@@ -107,11 +106,10 @@ export function AssemblyCore({ progress }: { progress: number }) {
       <sphereGeometry args={[1, 32, 32]} />
       <meshStandardMaterial
         emissive="#00E5FF"
-        emissiveIntensity={0.3}
-        color="#b0f0ff"
+        emissiveIntensity={0.15}
+        color="#0d0a1a"
         transparent
-        opacity={0.2}
-        blending={THREE.AdditiveBlending}
+        opacity={0.06}
         depthWrite={false}
       />
     </mesh>
@@ -154,7 +152,6 @@ export function AssemblyPulses({ progress }: { progress: number }) {
             color="#00E5FF"
             transparent
             opacity={0}
-            blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
         </mesh>

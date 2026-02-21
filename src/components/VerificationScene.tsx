@@ -40,7 +40,6 @@ export function VerificationRings({ progress }: { progress: number }) {
             color="#00E5FF"
             transparent
             opacity={0}
-            blending={THREE.AdditiveBlending}
             depthWrite={false}
           />
         </mesh>
@@ -117,10 +116,10 @@ export function VerificationNodes({
       <sphereGeometry args={[0.08, 8, 8]} />
       <meshStandardMaterial
         emissive="#00E5FF"
-        emissiveIntensity={1.5}
+        emissiveIntensity={0.4}
         color="#2D1B69"
         transparent
-        opacity={0.8}
+        opacity={0.5}
       />
     </instancedMesh>
   );
@@ -137,9 +136,9 @@ export function VerificationCenter({ progress }: { progress: number }) {
     ref.current.rotation.x = timeRef.current * 0.2;
     ref.current.rotation.y = timeRef.current * 0.15;
     const mat = ref.current.material as THREE.MeshStandardMaterial;
-    const pulse = Math.sin(timeRef.current * 2) * 0.3 + 0.7;
-    mat.emissiveIntensity = (1 + sceneP * 2) * pulse;
-    mat.opacity = 0.4 + sceneP * 0.5;
+    const pulse = Math.sin(timeRef.current * 2) * 0.1 + 0.9;
+    mat.emissiveIntensity = (0.2 + sceneP * 0.3) * pulse;
+    mat.opacity = 0.1 + sceneP * 0.1;
   });
 
   return (
@@ -147,11 +146,10 @@ export function VerificationCenter({ progress }: { progress: number }) {
       <dodecahedronGeometry args={[0.5]} />
       <meshStandardMaterial
         emissive="#00E5FF"
-        emissiveIntensity={1}
+        emissiveIntensity={0.3}
         color="#0d0a1a"
         transparent
-        opacity={0.4}
-        blending={THREE.AdditiveBlending}
+        opacity={0.15}
         depthWrite={false}
       />
     </mesh>
@@ -162,9 +160,9 @@ export function VerificationLighting() {
   return (
     <>
       <ambientLight intensity={0.03} />
-      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={1.2} distance={15} />
-      <pointLight position={[0, 5, 0]} color="#ffffff" intensity={0.5} distance={12} />
-      <pointLight position={[3, -2, -3]} color="#2D1B69" intensity={0.4} distance={10} />
+      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={0.3} distance={15} />
+      <pointLight position={[0, 5, 0]} color="#ffffff" intensity={0.15} distance={12} />
+      <pointLight position={[3, -2, -3]} color="#2D1B69" intensity={0.1} distance={10} />
     </>
   );
 }

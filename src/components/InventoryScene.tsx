@@ -97,11 +97,11 @@ export function InventoryGlow({ progress }: { progress: number }) {
   useFrame(() => {
     const sceneP = Math.max(0, Math.min(1, (progress - 0.03) / 0.15));
     if (!ref.current) return;
-    const s = 0.3 + sceneP * 0.8;
+    const s = 0.15 + sceneP * 0.25;
     ref.current.scale.set(s, s, s);
-    (ref.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.12;
+    (ref.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.03;
     (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-      0.3 + sceneP * 0.8;
+      0.1 + sceneP * 0.1;
   });
 
   return (
@@ -109,11 +109,10 @@ export function InventoryGlow({ progress }: { progress: number }) {
       <sphereGeometry args={[1, 32, 32]} />
       <meshStandardMaterial
         emissive="#00E5FF"
-        emissiveIntensity={0.5}
-        color="#000000"
+        emissiveIntensity={0.15}
+        color="#0d0a1a"
         transparent
         opacity={0}
-        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </mesh>

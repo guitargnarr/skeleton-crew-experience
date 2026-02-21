@@ -58,7 +58,7 @@ function TextSection({ children, progress, enterAt, exitAt, className = "" }: Te
 
   return (
     <div
-      className={`absolute inset-0 flex items-center justify-center pointer-events-none ${className}`}
+      className={`absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden ${className}`}
       style={{ opacity, transform: `translateY(${translateY}px)`, willChange: "opacity, transform" }}
     >
       {children}
@@ -121,6 +121,8 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
     lineHeight: 1.85 as number,
     maxWidth: "34rem",
     textShadow: "0 1px 8px rgba(0,0,0,0.5)",
+    wordBreak: "break-word" as const,
+    overflowWrap: "break-word" as const,
   });
 
   const sceneNumeral = () => ({
@@ -150,7 +152,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
   });
 
   return (
-    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 10 }}>
 
       {/* ================================================================= */}
       {/* TITLE                                                             */}

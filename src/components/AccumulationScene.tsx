@@ -86,10 +86,9 @@ export function AccumulationStars({
       <pointsMaterial
         vertexColors
         transparent
-        opacity={0.9}
-        size={2.5}
+        opacity={0.4}
+        size={1.5}
         sizeAttenuation
-        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </points>
@@ -140,7 +139,6 @@ export function AccumulationEdges({
         color="#00E5FF"
         transparent
         opacity={0}
-        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </lineSegments>
@@ -178,10 +176,9 @@ export function AccumulationNebula({
       <pointsMaterial
         color="#2D1B69"
         transparent
-        opacity={0.3}
-        size={5}
+        opacity={0.15}
+        size={3}
         sizeAttenuation
-        blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
     </points>
@@ -196,19 +193,19 @@ export function AccumulationCentralNode({ progress }: { progress: number }) {
   useFrame((_, delta) => {
     timeRef.current += delta;
     const sceneP = Math.max(0, Math.min(1, (progress - 0.71) / 0.15));
-    const pulse = Math.sin(timeRef.current * 1.5) * 0.15 + 0.85;
+    const pulse = Math.sin(timeRef.current * 1.5) * 0.05 + 0.95;
 
     if (ref.current) {
-      const s = (0.3 + sceneP * 0.7) * pulse;
+      const s = (0.15 + sceneP * 0.25) * pulse;
       ref.current.scale.set(s, s, s);
       const mat = ref.current.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = 1 + sceneP * 2;
-      mat.opacity = 0.5 + sceneP * 0.4;
+      mat.emissiveIntensity = 0.15 + sceneP * 0.15;
+      mat.opacity = 0.08 + sceneP * 0.07;
     }
     if (glowRef.current) {
-      const gs = (0.5 + sceneP * 1.5) * pulse;
+      const gs = (0.2 + sceneP * 0.4) * pulse;
       glowRef.current.scale.set(gs, gs, gs);
-      (glowRef.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.12;
+      (glowRef.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.03;
     }
   });
 
@@ -217,22 +214,22 @@ export function AccumulationCentralNode({ progress }: { progress: number }) {
       <mesh ref={ref}>
         <sphereGeometry args={[1, 32, 32]} />
         <meshStandardMaterial
-          emissive="#F5F0E8"
-          emissiveIntensity={1}
-          color="#F5F0E8"
+          emissive="#00E5FF"
+          emissiveIntensity={0.2}
+          color="#0d0a1a"
           transparent
-          opacity={0.5}
+          opacity={0.15}
+          depthWrite={false}
         />
       </mesh>
       <mesh ref={glowRef}>
         <sphereGeometry args={[1, 24, 24]} />
         <meshStandardMaterial
-          emissive="#F5F0E8"
-          emissiveIntensity={0.8}
-          color="#000000"
+          emissive="#00E5FF"
+          emissiveIntensity={0.1}
+          color="#0d0a1a"
           transparent
           opacity={0}
-          blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -243,10 +240,10 @@ export function AccumulationCentralNode({ progress }: { progress: number }) {
 export function AccumulationLighting() {
   return (
     <>
-      <ambientLight intensity={0.06} />
-      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={1.0} distance={18} />
-      <pointLight position={[4, 3, -3]} color="#F5F0E8" intensity={0.5} distance={12} />
-      <pointLight position={[-3, -2, 4]} color="#2D1B69" intensity={0.4} distance={10} />
+      <ambientLight intensity={0.03} />
+      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={0.2} distance={18} />
+      <pointLight position={[4, 3, -3]} color="#F5F0E8" intensity={0.1} distance={12} />
+      <pointLight position={[-3, -2, 4]} color="#2D1B69" intensity={0.08} distance={10} />
     </>
   );
 }
