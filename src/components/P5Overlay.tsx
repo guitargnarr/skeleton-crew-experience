@@ -5,19 +5,12 @@ interface P5OverlayProps {
   progress: number;
 }
 
-// Assembly stream rectangle positions, persistent across draws
-interface StreamRect {
+interface StreamBlock {
   y: number;
+  h: number;
+  speed: number;
+  alpha: number;
 }
-
-const STREAM_COUNTS = [18, 22, 15, 20];
-const STREAM_SPEEDS = [1.5, 2.0, 1.2, 1.7];
-const STREAM_COLORS: [number, number, number][] = [
-  [0, 229, 255],     // cyan
-  [245, 240, 232],   // cream
-  [106, 93, 186],    // violet-blue
-  [176, 240, 255],   // white-cyan
-];
 
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
@@ -40,21 +33,27 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Assembly stream state lives here so it persists across draws
-    let streams: StreamRect[][] | null = null;
-
-    // Track which verification cells have been verified for flash effect
+    // Persistent state across frames
+    let streams: StreamBlock[][] | null = null;
     let verifiedCells: boolean[][] | null = null;
     let flashCells: { col: number; row: number; frame: number }[] = [];
+    let inventoryRevealed: boolean[][] | null = null;
+    let inventoryFlash: { col: number; row: number; frame: number }[] = [];
 
     function initStreams(p: p5) {
       streams = [];
+      const counts = [35, 40, 30, 38];
       for (let col = 0; col < 4; col++) {
-        const rects: StreamRect[] = [];
-        for (let i = 0; i < STREAM_COUNTS[col]; i++) {
-          rects.push({ y: p.random(-p.height, p.height) });
+        const blocks: StreamBlock[] = [];
+        for (let i = 0; i < counts[col]; i++) {
+          blocks.push({
+            y: p.random(-p.height * 1.5, p.height),
+            h: p.random(8, 35),
+            speed: p.random(1.5, 4.5),
+            alpha: p.random(0.4, 1.0),
+          });
         }
-        streams.push(rects);
+        streams.push(blocks);
       }
     }
 
@@ -65,38 +64,34 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
         p.textFont("monospace");
         initStreams(p);
         verifiedCells = null;
+        inventoryRevealed = null;
       };
 
       p.draw = () => {
         p.clear();
         const prog = progressRef.current;
 
-        // Inventory grid: 0.03 - 0.18
         if (prog >= 0.02 && prog <= 0.20) {
           const sceneP = clamp01((prog - 0.03) / 0.15);
           drawInventoryGrid(p, sceneP);
         }
 
-        // Decision tree: 0.20 - 0.35
         if (prog >= 0.18 && prog <= 0.37) {
           const sceneP = clamp01((prog - 0.20) / 0.15);
           drawDecisionTree(p, sceneP);
         }
 
-        // Assembly streams: 0.37 - 0.52
         if (prog >= 0.35 && prog <= 0.54) {
           const sceneP = clamp01((prog - 0.37) / 0.15);
           if (!streams) initStreams(p);
           drawAssemblyStreams(p, sceneP, streams!);
         }
 
-        // Verification grid: 0.54 - 0.69
         if (prog >= 0.52 && prog <= 0.71) {
           const sceneP = clamp01((prog - 0.54) / 0.15);
           drawVerificationGrid(p, sceneP);
         }
 
-        // Accumulation counter: 0.71 - 0.86
         if (prog >= 0.69 && prog <= 0.88) {
           const sceneP = clamp01((prog - 0.71) / 0.15);
           drawAccumulationCounter(p, sceneP);
@@ -107,74 +102,119 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
         p.resizeCanvas(p.windowWidth, p.windowHeight);
         initStreams(p);
         verifiedCells = null;
+        inventoryRevealed = null;
       };
 
       // ─── Scene 1: Inventory Grid ───────────────────────────────
+      // Large screen-filling grid with scanner reveal from left to right
       function drawInventoryGrid(p: p5, sceneP: number) {
-        const cols = 10;
-        const rows = 6;
-        const cellSize = Math.min(p.width, p.height) * 0.05;
-        const gridW = cols * cellSize;
-        const gridH = rows * cellSize;
-        const originX = (p.width - gridW) / 2 + cellSize / 2;
-        const originY = (p.height - gridH) / 2 + cellSize / 2;
-        const totalDots = cols * rows;
-        const visibleCount = Math.floor(sceneP * totalDots);
+        const cols = 20;
+        const rows = 12;
+        const cellSize = Math.min(p.width / (cols + 2), p.height / (rows + 4));
+        const gap = cellSize * 0.25;
+        const totalCell = cellSize + gap;
+        const gridW = cols * totalCell;
+        const gridH = rows * totalCell;
+        const originX = (p.width - gridW) / 2;
+        const originY = (p.height - gridH) / 2;
+
+        // Scanner line sweeps left to right
+        const scanX = originX + sceneP * (gridW + totalCell * 2);
+        const scanBand = totalCell * 3;
+
+        // Init revealed tracking
+        if (!inventoryRevealed || inventoryRevealed.length !== cols) {
+          inventoryRevealed = [];
+          for (let c = 0; c < cols; c++) {
+            inventoryRevealed.push(new Array(rows).fill(false));
+          }
+          inventoryFlash = [];
+        }
+
+        inventoryFlash = inventoryFlash.filter(f => p.frameCount - f.frame < 15);
+
+        // Scanner glow line
+        p.noStroke();
+        for (let i = 0; i < 30; i++) {
+          const a = (1 - i / 30) * 40 * Math.min(1, sceneP * 5);
+          p.fill(0, 229, 255, a);
+          p.rect(scanX - i * 3, originY - gap, 3, gridH + gap * 2);
+        }
 
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            const idx = row * cols + col;
-            const x = originX + col * cellSize;
-            const y = originY + row * cellSize;
-            const active = idx < visibleCount;
+            const x = originX + col * totalCell;
+            const y = originY + row * totalCell;
+            const cellCenterX = x + cellSize / 2;
 
-            // Connecting lines to adjacent active dots
-            if (active) {
-              p.strokeWeight(0.5);
-              p.stroke(45, 27, 105, 25);
-              // Right neighbor
-              if (col < cols - 1 && idx + 1 < visibleCount) {
-                p.line(x, y, x + cellSize, y);
+            if (cellCenterX < scanX - scanBand) {
+              // Revealed -- filled square with category color
+              if (!inventoryRevealed![col][row]) {
+                inventoryRevealed![col][row] = true;
+                inventoryFlash.push({ col, row, frame: p.frameCount });
               }
-              // Bottom neighbor
-              if (row < rows - 1 && idx + cols < visibleCount) {
-                p.line(x, y, x, y + cellSize);
-              }
-            }
 
-            p.noStroke();
-            if (active) {
-              // Glow behind active dot
-              p.fill(0, 229, 255, 30);
-              p.circle(x, y, 14);
-              // Active dot
-              p.fill(0, 229, 255, 200);
-              const isNewest = idx === visibleCount - 1;
-              const radius = isNewest
-                ? 4 + Math.sin(p.frameCount * 0.1) * 1.5
-                : 4;
-              p.circle(x, y, radius * 2);
+              // Alternate between cyan and violet-cyan for visual texture
+              const isCyan = (col + row) % 3 !== 0;
+              if (isCyan) {
+                p.fill(0, 229, 255, 180);
+              } else {
+                p.fill(106, 93, 186, 160);
+              }
+              p.noStroke();
+              p.rect(x, y, cellSize, cellSize, 2);
+
+              // Tiny inner detail -- small dot
+              p.fill(13, 10, 26, 100);
+              p.circle(x + cellSize / 2, y + cellSize / 2, cellSize * 0.25);
+            } else if (cellCenterX < scanX && cellCenterX >= scanX - scanBand) {
+              // Scanning zone -- blinking
+              const dist = scanX - cellCenterX;
+              const bandP = dist / scanBand;
+              const blinkAlpha = (60 + Math.sin(p.frameCount * 0.2 + col * 0.5) * 40) * bandP;
+              p.noStroke();
+              p.fill(0, 229, 255, blinkAlpha);
+              p.rect(x, y, cellSize, cellSize, 2);
             } else {
-              // Unrevealed dot
-              p.fill(45, 27, 105, 40);
-              p.circle(x, y, 6);
+              // Unrevealed -- dim outline
+              p.noFill();
+              p.stroke(45, 27, 105, 30);
+              p.strokeWeight(0.5);
+              p.rect(x, y, cellSize, cellSize, 2);
             }
           }
         }
+
+        // Flash for newly revealed
+        for (const f of inventoryFlash) {
+          const age = p.frameCount - f.frame;
+          const flashAlpha = Math.max(0, 1 - age / 15) * 100;
+          const x = originX + f.col * totalCell;
+          const y = originY + f.row * totalCell;
+          p.noStroke();
+          p.fill(255, 255, 255, flashAlpha);
+          p.rect(x - 2, y - 2, cellSize + 4, cellSize + 4, 3);
+        }
+
+        // Scanner count text
+        const revealed = inventoryRevealed ? inventoryRevealed.flat().filter(Boolean).length : 0;
+        const total = cols * rows;
+        p.textAlign(p.RIGHT, p.BOTTOM);
+        p.textSize(14);
+        p.noStroke();
+        p.fill(0, 229, 255, 180);
+        p.text(`${revealed}/${total} catalogued`, originX + gridW, originY - 10);
       }
 
       // ─── Scene 2: Decision Tree ────────────────────────────────
+      // Full-width tree with thick glowing branches and animated path tracing
       function drawDecisionTree(p: p5, sceneP: number) {
         const rootX = p.width / 2;
-        const rootY = p.height * 0.15;
-        const hSpread = p.width * 0.35;
-        const vSpacing = p.height * 0.18;
-        const levelThresholds = [0.1, 0.3, 0.5, 0.7];
-        const leafLabelsLeft = ["DESIGN", "TRUST", "VOICE", "JUDGE"];
-        const leafLabelsRight = ["DEPLOY", "GENERATE", "VALIDATE", "SCALE"];
-        const cursorBlink = Math.sin(p.frameCount * 0.08) > 0;
+        const rootY = p.height * 0.08;
+        const hSpread = p.width * 0.42;
+        const vSpacing = p.height * 0.21;
+        const levels = 4;
 
-        // Build nodes level by level
         interface TreeNode {
           x: number;
           y: number;
@@ -186,13 +226,11 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
         }
 
         const nodes: TreeNode[] = [];
-        // Root
         nodes.push({ x: rootX, y: rootY, level: 0, index: 0, parentX: 0, parentY: 0, isLeft: true });
 
-        for (let level = 1; level <= 3; level++) {
+        for (let level = 1; level < levels; level++) {
           const count = Math.pow(2, level);
           const spread = hSpread / Math.pow(2, level - 1);
-
           for (let i = 0; i < count; i++) {
             const parentIdx = Math.floor(i / 2);
             const parent = nodes.find(n => n.level === level - 1 && n.index === parentIdx)!;
@@ -210,93 +248,201 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
           }
         }
 
-        // Determine the current decision point for cursor
-        let cursorNode: TreeNode | null = null;
+        const leafLabelsLeft = ["DESIGN", "TRUST", "VOICE", "JUDGE"];
+        const leafLabelsRight = ["DEPLOY", "GENERATE", "VALIDATE", "SCALE"];
 
+        // Draw branches and nodes with progressive reveal
         for (const node of nodes) {
-          const visible = sceneP >= levelThresholds[node.level];
-          if (!visible) continue;
+          // Each level reveals at a different progress threshold
+          const levelThreshold = node.level * 0.22;
+          const levelProgress = clamp01((sceneP - levelThreshold) / 0.2);
+          if (levelProgress <= 0) continue;
 
-          const isLeftBranch = node.index % 2 === 0;
-          const cyanColor: [number, number, number, number] = [0, 229, 255, 220];
-          const violetColor: [number, number, number, number] = [45, 27, 105, 100];
-          const branchColor = isLeftBranch ? cyanColor : violetColor;
+          const isLeftBranch = node.isLeft;
 
-          // Draw branch line from parent
+          // Branch colors: left = cyan (human), right = violet (delegated)
+          const cyanR = 0, cyanG = 229, cyanB = 255;
+          const violetR = 130, violetG = 100, violetB = 220;
+          const bR = isLeftBranch ? cyanR : violetR;
+          const bG = isLeftBranch ? cyanG : violetG;
+          const bB = isLeftBranch ? cyanB : violetB;
+          const branchAlpha = levelProgress * 220;
+
+          // Draw branch line from parent with glow
           if (node.level > 0) {
-            p.strokeWeight(1);
-            p.stroke(...branchColor);
-            p.line(node.parentX, node.parentY, node.x, node.y);
+            // Glow layer
+            p.strokeWeight(5);
+            p.stroke(bR, bG, bB, branchAlpha * 0.1);
+            const drawLen = smoothstep(levelProgress);
+            const dx = node.x - node.parentX;
+            const dy = node.y - node.parentY;
+            p.line(node.parentX, node.parentY, node.parentX + dx * drawLen, node.parentY + dy * drawLen);
+
+            // Main line
+            p.strokeWeight(2.5);
+            p.stroke(bR, bG, bB, branchAlpha);
+            p.line(node.parentX, node.parentY, node.parentX + dx * drawLen, node.parentY + dy * drawLen);
+
+            // Animated electricity pulse traveling down the branch
+            const pulseT = ((p.frameCount * 0.03 + node.index * 0.7) % 1);
+            const px = node.parentX + dx * pulseT * drawLen;
+            const py = node.parentY + dy * pulseT * drawLen;
+            p.noStroke();
+            p.fill(255, 255, 255, branchAlpha * 0.35);
+            p.circle(px, py, 4);
+            p.fill(bR, bG, bB, branchAlpha * 0.12);
+            p.circle(px, py, 10);
           }
 
-          // Draw node circle
+          // Draw node
           p.noStroke();
-          p.fill(...branchColor);
-          p.circle(node.x, node.y, node.level === 3 ? 12 : 14);
+          // Outer glow
+          p.fill(bR, bG, bB, branchAlpha * 0.1);
+          p.circle(node.x, node.y, 24 * levelProgress);
+          // Inner fill
+          p.fill(bR, bG, bB, branchAlpha);
+          const nodeSize = node.level === 0 ? 20 : node.level === levels - 1 ? 14 : 16;
+          p.circle(node.x, node.y, nodeSize * levelProgress);
 
-          // Leaf labels
-          if (node.level === 3) {
-            p.textSize(9);
+          // Leaf labels (bottom level)
+          if (node.level === levels - 1 && levelProgress > 0.5) {
+            const labelAlpha = (levelProgress - 0.5) * 2 * 200;
+            p.textSize(11);
             p.textAlign(p.CENTER, p.TOP);
-            p.fill(branchColor[0], branchColor[1], branchColor[2], branchColor[3]);
+            p.fill(bR, bG, bB, labelAlpha);
             const leafIdx = Math.floor(node.index / 2);
             const label = isLeftBranch ? leafLabelsLeft[leafIdx] : leafLabelsRight[leafIdx];
-            p.text(label, node.x, node.y + 12);
-          }
+            p.text(label, node.x, node.y + 14);
 
-          cursorNode = node;
+            // Category indicator
+            p.textSize(8);
+            p.fill(184, 176, 200, labelAlpha * 0.6);
+            p.text(isLeftBranch ? "HUMAN" : "DELEGATED", node.x, node.y + 28);
+          }
         }
 
-        // Blinking cursor at current decision point
-        if (cursorNode && cursorBlink) {
-          p.fill(0, 229, 255, 180);
-          p.noStroke();
-          p.rect(cursorNode.x + 10, cursorNode.y - 5, 6, 12);
+        // Root label
+        if (sceneP > 0.05) {
+          p.textSize(10);
+          p.textAlign(p.CENTER, p.BOTTOM);
+          p.fill(0, 229, 255, Math.min(200, sceneP * 400));
+          p.text("ORCHESTRATOR", rootX, rootY - 16);
+
+          // Blinking cursor
+          if (Math.sin(p.frameCount * 0.08) > 0) {
+            p.fill(0, 229, 255, 180);
+            p.rect(rootX + 48, rootY - 26, 2, 14);
+          }
+        }
+
+        // Legend at bottom
+        if (sceneP > 0.4) {
+          const legendAlpha = smoothstep((sceneP - 0.4) / 0.3) * 160;
+          p.textSize(11);
+          p.textAlign(p.CENTER, p.CENTER);
+          const legendY = p.height * 0.92;
+          p.fill(0, 229, 255, legendAlpha);
+          p.circle(p.width * 0.38, legendY, 8);
+          p.fill(184, 176, 200, legendAlpha);
+          p.text("stays human", p.width * 0.38 + 60, legendY);
+          p.fill(130, 100, 220, legendAlpha);
+          p.circle(p.width * 0.62, legendY, 8);
+          p.fill(184, 176, 200, legendAlpha);
+          p.text("gets delegated", p.width * 0.62 + 60, legendY);
         }
       }
 
       // ─── Scene 3: Assembly Streams ─────────────────────────────
-      function drawAssemblyStreams(p: p5, sceneP: number, strms: StreamRect[][]) {
-        const colPositions = [0.25, 0.4, 0.6, 0.75];
-        const alphaBase = sceneP * 200;
+      // Dense matrix-rain columns with prominent convergence
+      function drawAssemblyStreams(p: p5, sceneP: number, strms: StreamBlock[][]) {
+        const colPositions = [0.18, 0.38, 0.58, 0.78];
+        const colWidths = [p.width * 0.06, p.width * 0.06, p.width * 0.06, p.width * 0.06];
+        const streamColors: [number, number, number][] = [
+          [0, 229, 255],
+          [245, 240, 232],
+          [130, 100, 220],
+          [176, 240, 255],
+        ];
+        const colLabels = ["DESIGN", "CODE", "TEST", "DEPLOY"];
+
+        const fadeIn = smoothstep(Math.min(1, sceneP * 3));
+        const convergeP = smoothstep(clamp01((sceneP - 0.3) / 0.7));
 
         for (let col = 0; col < 4; col++) {
-          const cx = p.width * colPositions[col];
-          const [cr, cg, cb] = STREAM_COLORS[col];
-          const speed = STREAM_SPEEDS[col];
+          const baseCx = p.width * colPositions[col];
+          // Columns converge toward center as progress increases
+          const targetX = p.width / 2;
+          const cx = baseCx + (targetX - baseCx) * convergeP * 0.6;
+          const colW = colWidths[col] * (1 - convergeP * 0.5);
+          const [cr, cg, cb] = streamColors[col];
 
-          for (const rect of strms[col]) {
-            rect.y += speed;
-            if (rect.y > p.height + 10) {
-              rect.y = -10;
+          // Column glow track
+          p.noStroke();
+          p.fill(cr, cg, cb, fadeIn * 15);
+          p.rect(cx - colW / 2, 0, colW, p.height);
+
+          // Column header label
+          if (sceneP > 0.05) {
+            p.textSize(12);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.fill(cr, cg, cb, fadeIn * 160 * (1 - convergeP));
+            p.text(colLabels[col], baseCx, p.height * 0.05);
+          }
+
+          // Stream blocks
+          for (const block of strms[col]) {
+            block.y += block.speed * fadeIn;
+            if (block.y > p.height + 40) {
+              block.y = -block.h - Math.random() * 100;
+              block.h = 8 + Math.random() * 30;
+              block.speed = 1.5 + Math.random() * 3;
             }
-            p.noStroke();
-            p.fill(cr, cg, cb, alphaBase);
-            p.rect(cx - 4, rect.y, 8, 3);
+
+            const blockX = cx - colW / 2 + Math.random() * 0.5; // Slight jitter
+            const alpha = fadeIn * block.alpha * 200;
+
+            // Glow
+            p.fill(cr, cg, cb, alpha * 0.3);
+            p.rect(blockX - 1, block.y - 1, colW + 2, block.h + 2, 1);
+
+            // Block
+            p.fill(cr, cg, cb, alpha);
+            p.rect(blockX, block.y, colW, block.h, 1);
           }
         }
 
-        // Convergence bar at bottom
-        const barY = p.height * 0.85;
-        const barW = p.width * 0.5 * sceneP;
+        // Convergence zone at bottom
+        const barY = p.height * 0.88;
+        const barW = p.width * 0.6 * sceneP;
         const barX = (p.width - barW) / 2;
+        const barH = 6;
 
-        // Glow
-        p.noStroke();
-        p.fill(245, 240, 232, 30);
-        p.rect(barX - 4, barY - 4, barW + 8, 12, 2);
+        // Bar glow
+        p.fill(0, 229, 255, fadeIn * 25);
+        p.rect(barX - 8, barY - 8, barW + 16, barH + 16, 4);
 
-        // Bar
-        p.fill(245, 240, 232, 180);
-        p.rect(barX, barY, barW, 4, 1);
+        // Bar track
+        p.fill(45, 27, 105, fadeIn * 40);
+        p.rect((p.width - p.width * 0.6) / 2, barY, p.width * 0.6, barH, 3);
+
+        // Bar fill
+        p.fill(0, 229, 255, fadeIn * 200);
+        p.rect(barX, barY, barW, barH, 3);
+
+        // Percentage text
+        p.textSize(14);
+        p.textAlign(p.CENTER, p.TOP);
+        p.fill(0, 229, 255, fadeIn * 180);
+        p.text(`${Math.floor(sceneP * 100)}% converged`, p.width / 2, barY + 14);
       }
 
       // ─── Scene 4: Verification Grid ───────────────────────────
+      // (This is the standout -- keeping as-is with minor enhancements)
       function drawVerificationGrid(p: p5, sceneP: number) {
-        const cols = 16;
-        const rows = 10;
-        const cellSize = Math.min(p.width, p.height) * 0.04;
-        const gap = cellSize * 0.3;
+        const cols = 20;
+        const rows = 12;
+        const cellSize = Math.min(p.width / (cols + 2), p.height / (rows + 4)) * 0.85;
+        const gap = cellSize * 0.25;
         const totalCellSize = cellSize + gap;
         const gridW = cols * totalCellSize;
         const gridH = rows * totalCellSize;
@@ -305,9 +451,8 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
         const centerX = originX + gridW / 2;
         const centerY = originY + gridH / 2;
         const maxRadius = Math.sqrt(gridW * gridW + gridH * gridH) / 2;
-        const rippleRadius = sceneP * maxRadius;
+        const rippleRadius = sceneP * maxRadius * 1.2;
 
-        // Initialize verified tracking
         if (!verifiedCells || verifiedCells.length !== cols) {
           verifiedCells = [];
           for (let c = 0; c < cols; c++) {
@@ -316,7 +461,6 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
           flashCells = [];
         }
 
-        // Clean up old flash effects
         flashCells = flashCells.filter(f => p.frameCount - f.frame < 12);
 
         for (let row = 0; row < rows; row++) {
@@ -326,10 +470,9 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
             const cx = x + cellSize / 2;
             const cy = y + cellSize / 2;
             const dist = Math.sqrt((cx - centerX) ** 2 + (cy - centerY) ** 2);
-            const scanBand = cellSize * 2;
+            const scanBand = cellSize * 2.5;
 
             if (dist < rippleRadius - scanBand) {
-              // Verified
               if (!verifiedCells![col][row]) {
                 verifiedCells![col][row] = true;
                 flashCells.push({ col, row, frame: p.frameCount });
@@ -338,7 +481,7 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
               p.fill(0, 229, 255, 200);
               p.rect(x, y, cellSize, cellSize, 1);
 
-              // Tiny checkmark
+              // Checkmark
               p.stroke(13, 10, 26, 220);
               p.strokeWeight(1.5);
               p.noFill();
@@ -347,22 +490,19 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
               p.line(mx, my, x + cellSize * 0.45, y + cellSize * 0.75);
               p.line(x + cellSize * 0.45, y + cellSize * 0.75, x + cellSize * 0.75, y + cellSize * 0.3);
             } else if (dist < rippleRadius && dist >= rippleRadius - scanBand) {
-              // Scanning zone - blinking
               const blinkAlpha = 80 + Math.sin(p.frameCount * 0.15 + dist * 0.05) * 60;
               p.noStroke();
               p.fill(0, 229, 255, blinkAlpha);
               p.rect(x, y, cellSize, cellSize, 1);
             } else {
-              // Unverified - outline only
               p.noFill();
-              p.stroke(45, 27, 105, 40);
+              p.stroke(45, 27, 105, 35);
               p.strokeWeight(0.5);
               p.rect(x, y, cellSize, cellSize, 1);
             }
           }
         }
 
-        // Flash effect for newly verified cells
         for (const f of flashCells) {
           const age = p.frameCount - f.frame;
           const flashAlpha = Math.max(0, 1 - age / 12) * 120;
@@ -372,35 +512,119 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
           p.fill(0, 255, 136, flashAlpha);
           p.rect(x - 2, y - 2, cellSize + 4, cellSize + 4, 2);
         }
+
+        // Verification count
+        const verified = verifiedCells ? verifiedCells.flat().filter(Boolean).length : 0;
+        const total = cols * rows;
+        p.textAlign(p.RIGHT, p.BOTTOM);
+        p.textSize(14);
+        p.noStroke();
+        p.fill(0, 229, 255, 180);
+        p.text(`${verified}/${total} verified`, originX + gridW, originY - 10);
       }
 
       // ─── Scene 5: Accumulation Counter ────────────────────────
+      // Much larger numbers, visible orbital network, glowing connections
       function drawAccumulationCounter(p: p5, sceneP: number) {
         const eased = smoothstep(sceneP);
         const targets = [69, 45, 2, 1];
-        const labels = ["sites", "repos", "clients", "LLC"];
+        const labels = ["SITES", "REPOS", "CLIENTS", "LLC"];
         const cx = p.width / 2;
         const cy = p.height / 2;
-        const spacing = Math.min(p.width, p.height) * 0.15;
+        const spacing = Math.min(p.width, p.height) * 0.2;
 
-        // 2x2 grid of numbers
         const positions = [
-          { x: cx - spacing, y: cy - spacing * 0.6 },
-          { x: cx + spacing, y: cy - spacing * 0.6 },
-          { x: cx - spacing, y: cy + spacing * 0.6 },
-          { x: cx + spacing, y: cy + spacing * 0.6 },
+          { x: cx - spacing, y: cy - spacing * 0.55 },
+          { x: cx + spacing, y: cy - spacing * 0.55 },
+          { x: cx - spacing, y: cy + spacing * 0.55 },
+          { x: cx + spacing, y: cy + spacing * 0.55 },
         ];
 
+        // Orbital network first (behind numbers)
+        const nodeLabels = ["Automation", "Templates", "Models", "Skills", "Scripts", "Hooks", "Pipelines", "APIs"];
+        const orbitRadius = Math.min(p.width, p.height) * 0.38;
+
+        // Draw connecting web between orbital nodes
+        for (let i = 0; i < nodeLabels.length; i++) {
+          const angle1 = (i / nodeLabels.length) * p.TWO_PI - p.HALF_PI;
+          const nx1 = cx + Math.cos(angle1) * orbitRadius;
+          const ny1 = cy + Math.sin(angle1) * orbitRadius;
+
+          // Connection to center
+          const lineLen = smoothstep(sceneP);
+          const lx = cx + (nx1 - cx) * lineLen;
+          const ly = cy + (ny1 - cy) * lineLen;
+
+          // Glow line
+          p.strokeWeight(4);
+          p.stroke(0, 229, 255, 20 * lineLen);
+          p.line(cx, cy, lx, ly);
+
+          // Main line
+          p.strokeWeight(1.5);
+          p.stroke(0, 229, 255, 80 * lineLen);
+          p.line(cx, cy, lx, ly);
+
+          // Cross-connections to adjacent nodes
+          if (sceneP > 0.4) {
+            const j = (i + 1) % nodeLabels.length;
+            const angle2 = (j / nodeLabels.length) * p.TWO_PI - p.HALF_PI;
+            const nx2 = cx + Math.cos(angle2) * orbitRadius;
+            const ny2 = cy + Math.sin(angle2) * orbitRadius;
+            const crossAlpha = smoothstep((sceneP - 0.4) / 0.4) * 50;
+            p.strokeWeight(1);
+            p.stroke(45, 27, 105, crossAlpha);
+            p.line(nx1, ny1, nx2, ny2);
+          }
+
+          // Traveling pulse dots
+          const pulseCount = 2;
+          for (let pd = 0; pd < pulseCount; pd++) {
+            const dotT = ((p.frameCount * 0.015 + i * 0.4 + pd * 0.5) % 1) * sceneP;
+            const dx = cx + (nx1 - cx) * dotT;
+            const dy = cy + (ny1 - cy) * dotT;
+            p.noStroke();
+            p.fill(0, 229, 255, 100 * lineLen);
+            p.circle(dx, dy, 5);
+          }
+
+          // Node at end
+          if (sceneP > 0.2) {
+            const nodeAlpha = smoothstep((sceneP - 0.2) / 0.3);
+            // Glow
+            p.noStroke();
+            p.fill(0, 229, 255, 30 * nodeAlpha);
+            p.circle(nx1, ny1, 28);
+            // Node
+            p.fill(0, 229, 255, 200 * nodeAlpha);
+            p.circle(nx1, ny1, 14);
+            // Label
+            p.textSize(11);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.fill(184, 176, 200, 180 * nodeAlpha);
+            const labelOffset = 20;
+            const labelY = ny1 > cy ? ny1 + labelOffset : ny1 - labelOffset;
+            p.text(nodeLabels[i], nx1, labelY);
+          }
+        }
+
+        // Numbers (drawn on top)
         for (let i = 0; i < 4; i++) {
           const val = Math.floor(eased * targets[i]);
           const { x, y } = positions[i];
 
-          // Cyan glow (drawn offset behind)
-          p.textSize(48);
-          p.textAlign(p.CENTER, p.CENTER);
-          p.textFont("monospace");
+          // Large glow behind number
           p.noStroke();
-          p.fill(0, 229, 255, 50);
+          p.fill(0, 229, 255, 25 * eased);
+          p.circle(x, y, 100);
+
+          // Number -- much larger
+          p.textFont("monospace");
+          p.textSize(80);
+          p.textAlign(p.CENTER, p.CENTER);
+
+          // Cyan shadow
+          p.fill(0, 229, 255, 40);
           p.text(String(val), x + 2, y + 2);
 
           // Main number in cream
@@ -408,50 +632,9 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
           p.text(String(val), x, y);
 
           // Label below
-          p.textSize(12);
-          p.fill(184, 176, 200, 180);
-          p.text(labels[i], x, y + 34);
-        }
-
-        // Orbiting labeled nodes
-        const nodeLabels = ["Sites", "Repos", "Clients", "Entity", "Models", "Skills", "Scripts"];
-        const orbitRadius = Math.min(p.width, p.height) * 0.3;
-
-        for (let i = 0; i < nodeLabels.length; i++) {
-          const angle = (i / nodeLabels.length) * p.TWO_PI - p.HALF_PI;
-          const nx = cx + Math.cos(angle) * orbitRadius;
-          const ny = cy + Math.sin(angle) * orbitRadius;
-
-          // Connecting line drawn progressively
-          const lineLen = sceneP;
-          const lx = cx + (nx - cx) * lineLen;
-          const ly = cy + (ny - cy) * lineLen;
-
-          p.stroke(0, 229, 255, 60);
-          p.strokeWeight(0.5);
-          p.line(cx, cy, lx, ly);
-
-          // Traveling dot along line
-          const dotT = ((p.frameCount * 0.01 + i * 0.3) % 1) * sceneP;
-          const dx = cx + (nx - cx) * dotT;
-          const dy = cy + (ny - cy) * dotT;
-          p.noStroke();
-          p.fill(0, 229, 255, 140);
-          p.circle(dx, dy, 4);
-
-          // Node dot at end (only if line reached it)
-          if (sceneP > 0.3) {
-            p.fill(0, 229, 255, 200);
-            p.circle(nx, ny, 8);
-
-            // Node label
-            p.textSize(10);
-            p.textAlign(p.CENTER, p.CENTER);
-            p.fill(184, 176, 200, 160);
-            const labelOffset = 14;
-            const labelY = ny > cy ? ny + labelOffset : ny - labelOffset;
-            p.text(nodeLabels[i], nx, labelY);
-          }
+          p.textSize(13);
+          p.fill(0, 229, 255, 160);
+          p.text(labels[i], x, y + 48);
         }
       }
     };

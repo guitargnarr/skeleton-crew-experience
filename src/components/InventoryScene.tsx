@@ -58,10 +58,10 @@ export function InventoryObjects({
       <boxGeometry args={[0.15, 0.15, 0.15]} />
       <meshStandardMaterial
         emissive="#00E5FF"
-        emissiveIntensity={1.2}
+        emissiveIntensity={0.6}
         color="#0d0a1a"
         transparent
-        opacity={0.9}
+        opacity={0.7}
       />
     </instancedMesh>
   );
@@ -97,11 +97,11 @@ export function InventoryGlow({ progress }: { progress: number }) {
   useFrame(() => {
     const sceneP = Math.max(0, Math.min(1, (progress - 0.03) / 0.15));
     if (!ref.current) return;
-    const s = 0.3 + sceneP * 1.2;
+    const s = 0.3 + sceneP * 0.8;
     ref.current.scale.set(s, s, s);
-    (ref.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.25;
+    (ref.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.12;
     (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-      0.5 + sceneP * 1.5;
+      0.3 + sceneP * 0.8;
   });
 
   return (
@@ -123,10 +123,10 @@ export function InventoryGlow({ progress }: { progress: number }) {
 export function InventoryLighting() {
   return (
     <>
-      <ambientLight intensity={0.05} />
-      <pointLight position={[0, 3, 0]} color="#00E5FF" intensity={0.8} distance={12} />
-      <pointLight position={[4, 2, -3]} color="#2D1B69" intensity={0.4} distance={10} />
-      <pointLight position={[-3, -1, 4]} color="#F5F0E8" intensity={0.3} distance={10} />
+      <ambientLight intensity={0.04} />
+      <pointLight position={[0, 3, 0]} color="#00E5FF" intensity={0.4} distance={12} />
+      <pointLight position={[4, 2, -3]} color="#2D1B69" intensity={0.2} distance={10} />
+      <pointLight position={[-3, -1, 4]} color="#F5F0E8" intensity={0.15} distance={10} />
     </>
   );
 }

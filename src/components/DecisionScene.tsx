@@ -73,8 +73,8 @@ export function DecisionParticles({
       <pointsMaterial
         vertexColors
         transparent
-        opacity={0.85}
-        size={3}
+        opacity={0.5}
+        size={2}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
         depthWrite={false}
@@ -130,13 +130,13 @@ export function DecisionGlow({ progress }: { progress: number }) {
   useFrame(() => {
     const sceneP = Math.max(0, Math.min(1, (progress - 0.2) / 0.15));
     const converge = smoothstep(sceneP);
-    [leftRef, rightRef].forEach((ref, _idx) => {
+    [leftRef, rightRef].forEach((ref) => {
       if (!ref.current) return;
-      const s = 0.2 + converge * 0.8;
+      const s = 0.2 + converge * 0.5;
       ref.current.scale.set(s, s, s);
-      (ref.current.material as THREE.MeshStandardMaterial).opacity = converge * 0.2;
+      (ref.current.material as THREE.MeshStandardMaterial).opacity = converge * 0.08;
       (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        0.5 + converge * 2;
+        0.3 + converge * 0.8;
     });
   });
 
@@ -173,10 +173,10 @@ export function DecisionGlow({ progress }: { progress: number }) {
 export function DecisionLighting() {
   return (
     <>
-      <ambientLight intensity={0.04} />
-      <pointLight position={[-5, 2, 0]} color="#F5F0E8" intensity={0.6} distance={12} />
-      <pointLight position={[5, 2, 0]} color="#00E5FF" intensity={0.8} distance={12} />
-      <pointLight position={[0, 0, 5]} color="#2D1B69" intensity={0.3} distance={10} />
+      <ambientLight intensity={0.03} />
+      <pointLight position={[-5, 2, 0]} color="#F5F0E8" intensity={0.3} distance={12} />
+      <pointLight position={[5, 2, 0]} color="#00E5FF" intensity={0.4} distance={12} />
+      <pointLight position={[0, 0, 5]} color="#2D1B69" intensity={0.2} distance={10} />
     </>
   );
 }

@@ -79,8 +79,8 @@ export function AssemblyStreams({
       <pointsMaterial
         vertexColors
         transparent
-        opacity={0.8}
-        size={2.5}
+        opacity={0.45}
+        size={2}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
         depthWrite={false}
@@ -95,11 +95,11 @@ export function AssemblyCore({ progress }: { progress: number }) {
   useFrame(() => {
     const sceneP = Math.max(0, Math.min(1, (progress - 0.37) / 0.15));
     if (!ref.current) return;
-    const s = 0.2 + sceneP * 1.3;
+    const s = 0.15 + sceneP * 0.6;
     ref.current.scale.set(s, s, s);
     const mat = ref.current.material as THREE.MeshStandardMaterial;
-    mat.emissiveIntensity = 0.3 + sceneP * 2.5;
-    mat.opacity = 0.2 + sceneP * 0.6;
+    mat.emissiveIntensity = 0.2 + sceneP * 0.6;
+    mat.opacity = 0.08 + sceneP * 0.15;
   });
 
   return (
@@ -135,7 +135,7 @@ export function AssemblyPulses({ progress }: { progress: number }) {
       const s = 0.5 + expand * 5;
       ring.scale.set(s, s, s);
       const mat = ring.material as THREE.MeshBasicMaterial;
-      mat.opacity = Math.max(0, (1 - expand) * 0.3 * sceneP);
+      mat.opacity = Math.max(0, (1 - expand) * 0.15 * sceneP);
     });
   });
 
@@ -166,10 +166,10 @@ export function AssemblyPulses({ progress }: { progress: number }) {
 export function AssemblyLighting() {
   return (
     <>
-      <ambientLight intensity={0.06} />
-      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={1.0} distance={15} />
-      <pointLight position={[3, 3, -2]} color="#F5F0E8" intensity={0.4} distance={10} />
-      <pointLight position={[-2, -3, 3]} color="#2D1B69" intensity={0.3} distance={10} />
+      <ambientLight intensity={0.04} />
+      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={0.4} distance={15} />
+      <pointLight position={[3, 3, -2]} color="#F5F0E8" intensity={0.2} distance={10} />
+      <pointLight position={[-2, -3, 3]} color="#2D1B69" intensity={0.15} distance={10} />
     </>
   );
 }
