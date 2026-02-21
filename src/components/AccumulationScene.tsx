@@ -21,21 +21,13 @@ export function AccumulationStars({
 }) {
   const pointsRef = useRef<THREE.Points>(null!);
   const timeRef = useRef(0);
-  const count = isMobile ? 200 : 400;
+  const count = isMobile ? 80 : 150;
   const perCluster = Math.floor(count / 5);
 
-  const { positions, colors, scattered, targets } = useMemo(() => {
+  const { positions, scattered, targets } = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
     const scat = new Float32Array(count * 3);
     const targ = new Float32Array(count * 3);
-    const palette = [
-      new THREE.Color("#00E5FF"),
-      new THREE.Color("#F5F0E8"),
-      new THREE.Color("#b0a0e0"),
-      new THREE.Color("#00E5FF"),
-      new THREE.Color("#F5F0E8"),
-    ];
 
     for (let i = 0; i < count; i++) {
       const ci = Math.min(Math.floor(i / perCluster), 4);
@@ -49,12 +41,8 @@ export function AccumulationStars({
       pos[i * 3] = scat[i * 3];
       pos[i * 3 + 1] = scat[i * 3 + 1];
       pos[i * 3 + 2] = scat[i * 3 + 2];
-      const c = palette[ci];
-      col[i * 3] = c.r;
-      col[i * 3 + 1] = c.g;
-      col[i * 3 + 2] = c.b;
     }
-    return { positions: pos, colors: col, scattered: scat, targets: targ };
+    return { positions: pos, scattered: scat, targets: targ };
   }, [count, perCluster]);
 
   useFrame((_, delta) => {
@@ -68,10 +56,8 @@ export function AccumulationStars({
 
     for (let i = 0; i < count; i++) {
       const si = i * 3;
-      const twinkle = Math.sin(timeRef.current * 2 + i * 1.7) * 0.1;
-      arr[si] = scattered[si] + (targets[si] - scattered[si]) * converge + twinkle;
-      arr[si + 1] =
-        scattered[si + 1] + (targets[si + 1] - scattered[si + 1]) * converge + twinkle * 0.5;
+      arr[si] = scattered[si] + (targets[si] - scattered[si]) * converge;
+      arr[si + 1] = scattered[si + 1] + (targets[si + 1] - scattered[si + 1]) * converge;
       arr[si + 2] = scattered[si + 2] + (targets[si + 2] - scattered[si + 2]) * converge;
     }
     posAttr.needsUpdate = true;
@@ -81,13 +67,12 @@ export function AccumulationStars({
     <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        vertexColors
+        color="#2D1B69"
         transparent
-        opacity={0.4}
-        size={1.5}
+        opacity={0.15}
+        size={0.06}
         sizeAttenuation
         depthWrite={false}
       />
@@ -103,7 +88,7 @@ export function AccumulationEdges({
   isMobile: boolean;
 }) {
   const linesRef = useRef<THREE.LineSegments>(null!);
-  const count = isMobile ? 30 : 60;
+  const count = isMobile ? 15 : 30;
 
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 6);
@@ -127,7 +112,7 @@ export function AccumulationEdges({
     if (!linesRef.current) return;
     const mat = linesRef.current.material as THREE.LineBasicMaterial;
     const edgeP = Math.max(0, (sceneP - 0.3) / 0.7);
-    mat.opacity = smoothstep(edgeP) * 0.5;
+    mat.opacity = smoothstep(edgeP) * 0.08;
   });
 
   return (
@@ -136,7 +121,7 @@ export function AccumulationEdges({
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <lineBasicMaterial
-        color="#00E5FF"
+        color="#2D1B69"
         transparent
         opacity={0}
         depthWrite={false}
@@ -153,14 +138,14 @@ export function AccumulationNebula({
   isMobile: boolean;
 }) {
   const pointsRef = useRef<THREE.Points>(null!);
-  const count = isMobile ? 100 : 200;
+  const count = isMobile ? 40 : 80;
 
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      const r = 6 + Math.random() * 6;
+      const r = 8 + Math.random() * 6;
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       pos[i * 3 + 2] = r * Math.cos(phi);
@@ -174,10 +159,10 @@ export function AccumulationNebula({
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        color="#2D1B69"
+        color="#1a1530"
         transparent
-        opacity={0.15}
-        size={3}
+        opacity={0.1}
+        size={0.04}
         sizeAttenuation
         depthWrite={false}
       />
@@ -193,41 +178,35 @@ export function AccumulationCentralNode({ progress }: { progress: number }) {
   useFrame((_, delta) => {
     timeRef.current += delta;
     const sceneP = Math.max(0, Math.min(1, (progress - 0.71) / 0.15));
-    const pulse = Math.sin(timeRef.current * 1.5) * 0.05 + 0.95;
 
     if (ref.current) {
-      const s = (0.15 + sceneP * 0.25) * pulse;
+      const s = 0.05 + sceneP * 0.1;
       ref.current.scale.set(s, s, s);
-      const mat = ref.current.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = 0.15 + sceneP * 0.15;
-      mat.opacity = 0.08 + sceneP * 0.07;
+      const mat = ref.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.03 + sceneP * 0.03;
     }
     if (glowRef.current) {
-      const gs = (0.2 + sceneP * 0.4) * pulse;
+      const gs = 0.1 + sceneP * 0.15;
       glowRef.current.scale.set(gs, gs, gs);
-      (glowRef.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.03;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = sceneP * 0.01;
     }
   });
 
   return (
     <>
       <mesh ref={ref}>
-        <sphereGeometry args={[1, 32, 32]} />
-        <meshStandardMaterial
-          emissive="#00E5FF"
-          emissiveIntensity={0.2}
-          color="#0d0a1a"
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial
+          color="#2D1B69"
           transparent
-          opacity={0.15}
+          opacity={0.03}
           depthWrite={false}
         />
       </mesh>
       <mesh ref={glowRef}>
-        <sphereGeometry args={[1, 24, 24]} />
-        <meshStandardMaterial
-          emissive="#00E5FF"
-          emissiveIntensity={0.1}
-          color="#0d0a1a"
+        <sphereGeometry args={[1, 12, 12]} />
+        <meshBasicMaterial
+          color="#1a1530"
           transparent
           opacity={0}
           depthWrite={false}
@@ -240,10 +219,7 @@ export function AccumulationCentralNode({ progress }: { progress: number }) {
 export function AccumulationLighting() {
   return (
     <>
-      <ambientLight intensity={0.03} />
-      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={0.2} distance={18} />
-      <pointLight position={[4, 3, -3]} color="#F5F0E8" intensity={0.1} distance={12} />
-      <pointLight position={[-3, -2, 4]} color="#2D1B69" intensity={0.08} distance={10} />
+      <ambientLight intensity={0.02} />
     </>
   );
 }

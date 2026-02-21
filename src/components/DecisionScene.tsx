@@ -13,33 +13,24 @@ export function DecisionParticles({
 }) {
   const pointsRef = useRef<THREE.Points>(null!);
   const timeRef = useRef(0);
-  const count = isMobile ? 600 : 1200;
+  const count = isMobile ? 80 : 150;
 
-  const { positions, colors, sizes, origins } = useMemo(() => {
+  const { positions, origins } = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
-    const sz = new Float32Array(count);
     const orig = new Float32Array(count * 3);
-    const cream = new THREE.Color("#F5F0E8");
-    const cyan = new THREE.Color("#00E5FF");
 
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      const r = Math.random() * 2;
+      const r = 2 + Math.random() * 4;
       orig[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       orig[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       orig[i * 3 + 2] = r * Math.cos(phi);
       pos[i * 3] = orig[i * 3];
       pos[i * 3 + 1] = orig[i * 3 + 1];
       pos[i * 3 + 2] = orig[i * 3 + 2];
-      const c = i % 2 === 0 ? cream : cyan;
-      col[i * 3] = c.r;
-      col[i * 3 + 1] = c.g;
-      col[i * 3 + 2] = c.b;
-      sz[i] = 2 + Math.random() * 3;
     }
-    return { positions: pos, colors: col, sizes: sz, origins: orig };
+    return { positions: pos, origins: orig };
   }, [count]);
 
   useFrame((_, delta) => {
@@ -54,11 +45,10 @@ export function DecisionParticles({
     for (let i = 0; i < count; i++) {
       const si = i * 3;
       const isLeft = i % 2 === 0;
-      const speed = isLeft ? 1.0 : 1.5;
       const dir = isLeft ? -1 : 1;
-      arr[si] = origins[si] + dir * split * 4 * speed;
-      arr[si + 1] = origins[si + 1] + Math.sin(timeRef.current + i) * 0.1;
-      arr[si + 2] = origins[si + 2] + Math.cos(timeRef.current * 0.7 + i) * 0.08;
+      arr[si] = origins[si] + dir * split * 3;
+      arr[si + 1] = origins[si + 1] + Math.sin(timeRef.current * 0.5 + i) * 0.05;
+      arr[si + 2] = origins[si + 2];
     }
     posAttr.needsUpdate = true;
   });
@@ -67,14 +57,12 @@ export function DecisionParticles({
     <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
-        <bufferAttribute attach="attributes-size" args={[sizes, 1]} />
       </bufferGeometry>
       <pointsMaterial
-        vertexColors
+        color="#2D1B69"
         transparent
-        opacity={0.25}
-        size={1.5}
+        opacity={0.15}
+        size={0.08}
         sizeAttenuation
         depthWrite={false}
       />
@@ -84,7 +72,7 @@ export function DecisionParticles({
 
 export function DecisionDivider({ progress }: { progress: number }) {
   const pointsRef = useRef<THREE.Points>(null!);
-  const count = 50;
+  const count = 30;
 
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -101,7 +89,7 @@ export function DecisionDivider({ progress }: { progress: number }) {
     if (!pointsRef.current) return;
     const mid = sceneP < 0.5 ? sceneP / 0.5 : 1 - (sceneP - 0.5) / 0.5;
     const mat = pointsRef.current.material as THREE.PointsMaterial;
-    mat.opacity = mid * 0.8;
+    mat.opacity = mid * 0.15;
   });
 
   return (
@@ -110,10 +98,10 @@ export function DecisionDivider({ progress }: { progress: number }) {
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        color="#F5F0E8"
+        color="#2D1B69"
         transparent
         opacity={0}
-        size={1.5}
+        size={0.06}
         sizeAttenuation
         depthWrite={false}
       />
@@ -130,21 +118,21 @@ export function DecisionGlow({ progress }: { progress: number }) {
     const converge = smoothstep(sceneP);
     [leftRef, rightRef].forEach((ref) => {
       if (!ref.current) return;
-      const s = 0.15 + converge * 0.3;
+      const s = 0.1 + converge * 0.15;
       ref.current.scale.set(s, s, s);
-      (ref.current.material as THREE.MeshStandardMaterial).opacity = converge * 0.04;
+      (ref.current.material as THREE.MeshStandardMaterial).opacity = converge * 0.02;
       (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        0.1 + converge * 0.2;
+        0.05 + converge * 0.05;
     });
   });
 
   return (
     <>
       <mesh ref={leftRef} position={[-3, 0, 0]}>
-        <sphereGeometry args={[1, 24, 24]} />
+        <sphereGeometry args={[1, 16, 16]} />
         <meshStandardMaterial
-          emissive="#F5F0E8"
-          emissiveIntensity={0.3}
+          emissive="#2D1B69"
+          emissiveIntensity={0.05}
           color="#0d0a1a"
           transparent
           opacity={0}
@@ -152,10 +140,10 @@ export function DecisionGlow({ progress }: { progress: number }) {
         />
       </mesh>
       <mesh ref={rightRef} position={[3, 0, 0]}>
-        <sphereGeometry args={[1, 24, 24]} />
+        <sphereGeometry args={[1, 16, 16]} />
         <meshStandardMaterial
-          emissive="#00E5FF"
-          emissiveIntensity={0.3}
+          emissive="#2D1B69"
+          emissiveIntensity={0.05}
           color="#0d0a1a"
           transparent
           opacity={0}
@@ -169,10 +157,7 @@ export function DecisionGlow({ progress }: { progress: number }) {
 export function DecisionLighting() {
   return (
     <>
-      <ambientLight intensity={0.03} />
-      <pointLight position={[-5, 2, 0]} color="#F5F0E8" intensity={0.3} distance={12} />
-      <pointLight position={[5, 2, 0]} color="#00E5FF" intensity={0.4} distance={12} />
-      <pointLight position={[0, 0, 5]} color="#2D1B69" intensity={0.2} distance={10} />
+      <ambientLight intensity={0.02} />
     </>
   );
 }

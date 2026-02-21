@@ -20,7 +20,7 @@ export function VerificationRings({ progress }: { progress: number }) {
       const radius = 0.5 + expand * 5.5;
       ring.scale.set(radius, radius, radius);
       const mat = ring.material as THREE.MeshBasicMaterial;
-      mat.opacity = Math.max(0, (1 - expand * 0.8) * 0.6);
+      mat.opacity = Math.max(0, (1 - expand * 0.8) * 0.08);
       ring.rotation.x = Math.PI / 2;
       ring.rotation.z = timeRef.current * 0.05 * (i + 1);
     });
@@ -35,9 +35,9 @@ export function VerificationRings({ progress }: { progress: number }) {
             if (el) ringsRef.current[i] = el;
           }}
         >
-          <torusGeometry args={[1, 0.015, 8, 96]} />
+          <torusGeometry args={[1, 0.01, 8, 96]} />
           <meshBasicMaterial
-            color="#00E5FF"
+            color="#2D1B69"
             transparent
             opacity={0}
             depthWrite={false}
@@ -57,7 +57,7 @@ export function VerificationNodes({
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null!);
   const timeRef = useRef(0);
-  const count = isMobile ? 150 : 300;
+  const count = isMobile ? 60 : 120;
 
   const { nodePositions, distances, dummy, colorActive, colorDim } = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -65,7 +65,7 @@ export function VerificationNodes({
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      const r = 4;
+      const r = 4 + Math.random() * 2;
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       pos[i * 3 + 2] = r * Math.cos(phi);
@@ -77,8 +77,8 @@ export function VerificationNodes({
       nodePositions: pos,
       distances: dist,
       dummy: new THREE.Object3D(),
-      colorActive: new THREE.Color("#00E5FF"),
-      colorDim: new THREE.Color("#2D1B69"),
+      colorActive: new THREE.Color("#1a1540"),
+      colorDim: new THREE.Color("#0d0a1a"),
     };
   }, [count]);
 
@@ -88,23 +88,19 @@ export function VerificationNodes({
     const mesh = meshRef.current;
     if (!mesh) return;
 
-    const waveRadius = sceneP * 6;
+    const waveRadius = sceneP * 8;
     const color = new THREE.Color();
 
     for (let i = 0; i < count; i++) {
       const si = i * 3;
       dummy.position.set(nodePositions[si], nodePositions[si + 1], nodePositions[si + 2]);
       const activated = distances[i] < waveRadius;
-      const s = activated ? 1.2 : 0.6;
+      const s = activated ? 0.8 : 0.4;
       dummy.scale.set(s, s, s);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
-      if (activated) {
-        color.copy(colorActive);
-      } else {
-        color.copy(colorDim);
-      }
+      color.copy(activated ? colorActive : colorDim);
       mesh.setColorAt(i, color);
     }
     mesh.instanceMatrix.needsUpdate = true;
@@ -113,13 +109,11 @@ export function VerificationNodes({
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      <sphereGeometry args={[0.08, 8, 8]} />
-      <meshStandardMaterial
-        emissive="#00E5FF"
-        emissiveIntensity={0.4}
-        color="#2D1B69"
+      <sphereGeometry args={[0.06, 6, 6]} />
+      <meshBasicMaterial
+        color="#1a1540"
         transparent
-        opacity={0.5}
+        opacity={0.2}
       />
     </instancedMesh>
   );
@@ -135,21 +129,17 @@ export function VerificationCenter({ progress }: { progress: number }) {
     if (!ref.current) return;
     ref.current.rotation.x = timeRef.current * 0.2;
     ref.current.rotation.y = timeRef.current * 0.15;
-    const mat = ref.current.material as THREE.MeshStandardMaterial;
-    const pulse = Math.sin(timeRef.current * 2) * 0.1 + 0.9;
-    mat.emissiveIntensity = (0.2 + sceneP * 0.3) * pulse;
-    mat.opacity = 0.1 + sceneP * 0.1;
+    const mat = ref.current.material as THREE.MeshBasicMaterial;
+    mat.opacity = 0.03 + sceneP * 0.04;
   });
 
   return (
     <mesh ref={ref}>
-      <dodecahedronGeometry args={[0.5]} />
-      <meshStandardMaterial
-        emissive="#00E5FF"
-        emissiveIntensity={0.3}
-        color="#0d0a1a"
+      <dodecahedronGeometry args={[0.3]} />
+      <meshBasicMaterial
+        color="#2D1B69"
         transparent
-        opacity={0.15}
+        opacity={0.03}
         depthWrite={false}
       />
     </mesh>
@@ -159,10 +149,7 @@ export function VerificationCenter({ progress }: { progress: number }) {
 export function VerificationLighting() {
   return (
     <>
-      <ambientLight intensity={0.03} />
-      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={0.3} distance={15} />
-      <pointLight position={[0, 5, 0]} color="#ffffff" intensity={0.15} distance={12} />
-      <pointLight position={[3, -2, -3]} color="#2D1B69" intensity={0.1} distance={10} />
+      <ambientLight intensity={0.02} />
     </>
   );
 }

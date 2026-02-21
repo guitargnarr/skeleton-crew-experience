@@ -13,7 +13,7 @@ export function InventoryObjects({
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null!);
   const timeRef = useRef(0);
-  const count = isMobile ? 40 : 80;
+  const count = isMobile ? 25 : 50;
 
   const { scattered, grid, dummy } = useMemo(() => {
     const s = new Float32Array(count * 3);
@@ -55,13 +55,11 @@ export function InventoryObjects({
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      <boxGeometry args={[0.15, 0.15, 0.15]} />
-      <meshStandardMaterial
-        emissive="#00E5FF"
-        emissiveIntensity={0.6}
-        color="#0d0a1a"
+      <boxGeometry args={[0.1, 0.1, 0.1]} />
+      <meshBasicMaterial
+        color="#1a1540"
         transparent
-        opacity={0.7}
+        opacity={0.2}
       />
     </instancedMesh>
   );
@@ -75,14 +73,14 @@ export function InventoryGrid({ progress }: { progress: number }) {
     timeRef.current += delta;
     const sceneP = Math.max(0, Math.min(1, (progress - 0.03) / 0.15));
     if (!ref.current) return;
-    ref.current.material.opacity = sceneP * 0.3;
+    ref.current.material.opacity = sceneP * 0.08;
     ref.current.rotation.y = timeRef.current * 0.02;
   });
 
   return (
     <gridHelper
       ref={ref as any}
-      args={[10, 10, "#2D1B69", "#1a1530"]}
+      args={[10, 10, "#1a1530", "#0d0a1a"]}
       position={[0, -2, 0]}
       material-transparent={true}
       material-opacity={0}
@@ -97,20 +95,16 @@ export function InventoryGlow({ progress }: { progress: number }) {
   useFrame(() => {
     const sceneP = Math.max(0, Math.min(1, (progress - 0.03) / 0.15));
     if (!ref.current) return;
-    const s = 0.15 + sceneP * 0.25;
+    const s = 0.1 + sceneP * 0.1;
     ref.current.scale.set(s, s, s);
-    (ref.current.material as THREE.MeshStandardMaterial).opacity = sceneP * 0.03;
-    (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-      0.1 + sceneP * 0.1;
+    (ref.current.material as THREE.MeshBasicMaterial).opacity = sceneP * 0.01;
   });
 
   return (
     <mesh ref={ref}>
-      <sphereGeometry args={[1, 32, 32]} />
-      <meshStandardMaterial
-        emissive="#00E5FF"
-        emissiveIntensity={0.15}
-        color="#0d0a1a"
+      <sphereGeometry args={[1, 16, 16]} />
+      <meshBasicMaterial
+        color="#1a1530"
         transparent
         opacity={0}
         depthWrite={false}
@@ -122,10 +116,7 @@ export function InventoryGlow({ progress }: { progress: number }) {
 export function InventoryLighting() {
   return (
     <>
-      <ambientLight intensity={0.04} />
-      <pointLight position={[0, 3, 0]} color="#00E5FF" intensity={0.4} distance={12} />
-      <pointLight position={[4, 2, -3]} color="#2D1B69" intensity={0.2} distance={10} />
-      <pointLight position={[-3, -1, 4]} color="#F5F0E8" intensity={0.15} distance={10} />
+      <ambientLight intensity={0.02} />
     </>
   );
 }

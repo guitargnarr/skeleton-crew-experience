@@ -4,13 +4,6 @@ import * as THREE from "three";
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
-const STREAM_CONFIGS = [
-  { color: new THREE.Color("#00E5FF"), origin: [0, 6, 0], speed: 1.0 },
-  { color: new THREE.Color("#F5F0E8"), origin: [6, 0, 0], speed: 1.3 },
-  { color: new THREE.Color("#6a5dba"), origin: [0, -6, 0], speed: 0.8 },
-  { color: new THREE.Color("#b0f0ff"), origin: [-6, 0, 0], speed: 1.1 },
-] as const;
-
 export function AssemblyStreams({
   progress,
   isMobile,
@@ -20,34 +13,28 @@ export function AssemblyStreams({
 }) {
   const pointsRef = useRef<THREE.Points>(null!);
   const timeRef = useRef(0);
-  const count = isMobile ? 400 : 800;
-  const perStream = Math.floor(count / 4);
+  const count = isMobile ? 60 : 120;
 
-  const { positions, colors, origins, streamIdx } = useMemo(() => {
+  const { positions, origins } = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
     const orig = new Float32Array(count * 3);
-    const idx = new Int32Array(count);
+    const perStream = Math.floor(count / 4);
+    const offsets = [[-4, 5], [-1.3, 5], [1.3, 5], [4, 5]];
 
     for (let i = 0; i < count; i++) {
-      const si = Math.floor(i / perStream);
-      const stream = STREAM_CONFIGS[Math.min(si, 3)];
-      idx[i] = Math.min(si, 3);
-      const ox = stream.origin[0] + (Math.random() - 0.5) * 2;
-      const oy = stream.origin[1] + (Math.random() - 0.5) * 2;
-      const oz = (Math.random() - 0.5) * 3;
+      const si = Math.min(Math.floor(i / perStream), 3);
+      const ox = offsets[si][0] + (Math.random() - 0.5) * 1;
+      const oy = offsets[si][1] * (Math.random());
+      const oz = (Math.random() - 0.5) * 2;
       orig[i * 3] = ox;
       orig[i * 3 + 1] = oy;
       orig[i * 3 + 2] = oz;
       pos[i * 3] = ox;
       pos[i * 3 + 1] = oy;
       pos[i * 3 + 2] = oz;
-      col[i * 3] = stream.color.r;
-      col[i * 3 + 1] = stream.color.g;
-      col[i * 3 + 2] = stream.color.b;
     }
-    return { positions: pos, colors: col, origins: orig, streamIdx: idx };
-  }, [count, perStream]);
+    return { positions: pos, origins: orig };
+  }, [count]);
 
   useFrame((_, delta) => {
     timeRef.current += delta;
@@ -56,16 +43,13 @@ export function AssemblyStreams({
     if (!pts) return;
     const posAttr = pts.geometry.attributes.position as THREE.BufferAttribute;
     const arr = posAttr.array as Float32Array;
+    const converge = smoothstep(sceneP);
 
     for (let i = 0; i < count; i++) {
       const si = i * 3;
-      const stream = STREAM_CONFIGS[streamIdx[i]];
-      const converge = smoothstep(Math.min(1, sceneP * stream.speed));
-      arr[si] = origins[si] * (1 - converge);
+      arr[si] = origins[si] * (1 - converge * 0.7);
       arr[si + 1] = origins[si + 1] * (1 - converge);
-      arr[si + 2] =
-        origins[si + 2] * (1 - converge) +
-        Math.sin(timeRef.current * 0.8 + i * 0.3) * 0.15 * (1 - converge);
+      arr[si + 2] = origins[si + 2] * (1 - converge);
     }
     posAttr.needsUpdate = true;
   });
@@ -74,13 +58,12 @@ export function AssemblyStreams({
     <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        vertexColors
+        color="#2D1B69"
         transparent
-        opacity={0.2}
-        size={1.5}
+        opacity={0.12}
+        size={0.06}
         sizeAttenuation
         depthWrite={false}
       />
@@ -94,22 +77,22 @@ export function AssemblyCore({ progress }: { progress: number }) {
   useFrame(() => {
     const sceneP = Math.max(0, Math.min(1, (progress - 0.37) / 0.15));
     if (!ref.current) return;
-    const s = 0.1 + sceneP * 0.3;
+    const s = 0.05 + sceneP * 0.1;
     ref.current.scale.set(s, s, s);
     const mat = ref.current.material as THREE.MeshStandardMaterial;
-    mat.emissiveIntensity = 0.1 + sceneP * 0.15;
-    mat.opacity = 0.03 + sceneP * 0.05;
+    mat.emissiveIntensity = 0.05 + sceneP * 0.05;
+    mat.opacity = 0.02 + sceneP * 0.02;
   });
 
   return (
     <mesh ref={ref}>
-      <sphereGeometry args={[1, 32, 32]} />
+      <sphereGeometry args={[1, 16, 16]} />
       <meshStandardMaterial
-        emissive="#00E5FF"
-        emissiveIntensity={0.15}
+        emissive="#2D1B69"
+        emissiveIntensity={0.05}
         color="#0d0a1a"
         transparent
-        opacity={0.06}
+        opacity={0.02}
         depthWrite={false}
       />
     </mesh>
@@ -133,7 +116,7 @@ export function AssemblyPulses({ progress }: { progress: number }) {
       const s = 0.5 + expand * 5;
       ring.scale.set(s, s, s);
       const mat = ring.material as THREE.MeshBasicMaterial;
-      mat.opacity = Math.max(0, (1 - expand) * 0.15 * sceneP);
+      mat.opacity = Math.max(0, (1 - expand) * 0.04 * sceneP);
     });
   });
 
@@ -147,9 +130,9 @@ export function AssemblyPulses({ progress }: { progress: number }) {
           }}
           rotation={[Math.PI / 2, 0, 0]}
         >
-          <torusGeometry args={[1, 0.02, 8, 64]} />
+          <torusGeometry args={[1, 0.01, 8, 64]} />
           <meshBasicMaterial
-            color="#00E5FF"
+            color="#2D1B69"
             transparent
             opacity={0}
             depthWrite={false}
@@ -163,10 +146,7 @@ export function AssemblyPulses({ progress }: { progress: number }) {
 export function AssemblyLighting() {
   return (
     <>
-      <ambientLight intensity={0.04} />
-      <pointLight position={[0, 0, 0]} color="#00E5FF" intensity={0.4} distance={15} />
-      <pointLight position={[3, 3, -2]} color="#F5F0E8" intensity={0.2} distance={10} />
-      <pointLight position={[-2, -3, 3]} color="#2D1B69" intensity={0.15} distance={10} />
+      <ambientLight intensity={0.02} />
     </>
   );
 }
