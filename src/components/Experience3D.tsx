@@ -55,8 +55,8 @@ function MorphCamera({ progress, isMobile }: { progress: number; isMobile: boole
   const currentPos = useRef(new THREE.Vector3(0, 0.5, 12));
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
 
-  const zPull = isMobile ? 5.0 : 0;
-  const xScale = isMobile ? 0.35 : 1;
+  const zPull = isMobile ? 2.0 : 0;
+  const xScale = isMobile ? 0.5 : 1;
 
   useFrame(() => {
     let pos: THREE.Vector3;
@@ -153,7 +153,7 @@ function InventoryGroup({ progress, isMobile }: { progress: number; isMobile: bo
   });
   return (
     <group ref={ref}>
-      <InventoryLighting />
+      <InventoryLighting isMobile={isMobile} />
       <InventoryObjects progress={progress} isMobile={isMobile} />
       <InventoryGrid progress={progress} />
       <InventoryGlow progress={progress} />
@@ -171,7 +171,7 @@ function DecisionGroup({ progress, isMobile }: { progress: number; isMobile: boo
   });
   return (
     <group ref={ref}>
-      <DecisionLighting />
+      <DecisionLighting isMobile={isMobile} />
       <DecisionParticles progress={progress} isMobile={isMobile} />
       <DecisionDivider progress={progress} />
       <DecisionGlow progress={progress} />
@@ -189,7 +189,7 @@ function AssemblyGroup({ progress, isMobile }: { progress: number; isMobile: boo
   });
   return (
     <group ref={ref}>
-      <AssemblyLighting />
+      <AssemblyLighting isMobile={isMobile} />
       <AssemblyStreams progress={progress} isMobile={isMobile} />
       <AssemblyCore progress={progress} />
       <AssemblyPulses progress={progress} />
@@ -207,7 +207,7 @@ function VerificationGroup({ progress, isMobile }: { progress: number; isMobile:
   });
   return (
     <group ref={ref}>
-      <VerificationLighting />
+      <VerificationLighting isMobile={isMobile} />
       <VerificationRings progress={progress} />
       <VerificationNodes progress={progress} isMobile={isMobile} />
       <VerificationCenter progress={progress} />
@@ -224,7 +224,7 @@ function AccumulationGroup({ progress, isMobile }: { progress: number; isMobile:
   });
   return (
     <group ref={ref}>
-      <AccumulationLighting />
+      <AccumulationLighting isMobile={isMobile} />
       <AccumulationNebula progress={progress} isMobile={isMobile} />
       <AccumulationStars progress={progress} isMobile={isMobile} />
       <AccumulationEdges progress={progress} isMobile={isMobile} />
@@ -268,7 +268,7 @@ function AmbientParticles({ isMobile }: { isMobile: boolean }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.02} color="#3a2a5a" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
+      <pointsMaterial size={isMobile ? 0.06 : 0.02} color={isMobile ? "#5a4a8a" : "#3a2a5a"} transparent opacity={isMobile ? 0.5 : 0.3} blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
     </points>
   );
 }
@@ -289,7 +289,7 @@ export default function Experience3D({ progress, isMobile = false }: SceneProps)
         style={{ pointerEvents: "none" }}
       >
         <color attach="background" args={["#0d0a1a"]} />
-        <fog attach="fog" args={["#0d0a1a", isMobile ? 12 : 10, isMobile ? 35 : 30]} />
+        <fog attach="fog" args={["#0d0a1a", isMobile ? 8 : 10, isMobile ? 40 : 30]} />
 
         <MorphCamera progress={progress} isMobile={isMobile} />
 

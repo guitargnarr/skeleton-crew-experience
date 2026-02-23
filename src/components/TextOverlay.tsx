@@ -102,7 +102,7 @@ export default function TextOverlay({ progress, isMobile = false }: TextOverlayP
   const bodySize = isMobile ? "clamp(0.85rem, 3.5vw, 1rem)" : "clamp(0.85rem, 1.5vw, 1rem)";
   const quoteSize = isMobile ? "clamp(0.9rem, 3.8vw, 1.1rem)" : "clamp(0.9rem, 1.5vw, 1.05rem)";
   const outroSize = isMobile ? "clamp(1.4rem, 7vw, 2.2rem)" : "clamp(1.6rem, 4vw, 3rem)";
-  const px = isMobile ? "px-6" : "px-8 md:px-16";
+  const px = isMobile ? "px-8" : "px-8 md:px-16";
 
   // Shared inline style builders
   const mono = (size: string, weight = 400, color = "#F5F0E8") => ({

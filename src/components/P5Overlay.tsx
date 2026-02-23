@@ -3,6 +3,7 @@ import p5 from "p5";
 
 interface P5OverlayProps {
   progress: number;
+  isMobile?: boolean;
 }
 
 interface StreamBlock {
@@ -21,14 +22,19 @@ function smoothstep(t: number): number {
   return c * c * (3 - 2 * c);
 }
 
-export default function P5Overlay({ progress }: P5OverlayProps) {
+export default function P5Overlay({ progress, isMobile = false }: P5OverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const p5Ref = useRef<p5 | null>(null);
   const progressRef = useRef(0);
+  const isMobileRef = useRef(isMobile);
 
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
+
+  useEffect(() => {
+    isMobileRef.current = isMobile;
+  }, [isMobile]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -70,18 +76,27 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
       p.draw = () => {
         p.clear();
         const prog = progressRef.current;
+        const mobile = isMobileRef.current;
 
         if (prog >= 0.02 && prog <= 0.20) {
           const sceneP = clamp01((prog - 0.03) / 0.15);
-          drawInventoryGrid(p, sceneP);
+          if (mobile) {
+            drawMobileInventoryGrid(p, sceneP);
+          } else {
+            drawInventoryGrid(p, sceneP);
+          }
         }
 
-        if (prog >= 0.18 && prog <= 0.37) {
-          const sceneP = clamp01((prog - 0.20) / 0.15);
-          drawDecisionTree(p, sceneP);
+        if (prog >= 0.18 && prog <= 0.40) {
+          const sceneP = clamp01((prog - 0.19) / 0.18);
+          if (mobile) {
+            drawMobileDecisionTree(p, sceneP);
+          } else {
+            drawDecisionTree(p, sceneP);
+          }
         }
 
-        if (prog >= 0.35 && prog <= 0.54) {
+        if (!mobile && prog >= 0.35 && prog <= 0.54) {
           const sceneP = clamp01((prog - 0.37) / 0.15);
           if (!streams) initStreams(p);
           drawAssemblyStreams(p, sceneP, streams!);
@@ -89,12 +104,20 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
 
         if (prog >= 0.52 && prog <= 0.71) {
           const sceneP = clamp01((prog - 0.54) / 0.15);
-          drawVerificationGrid(p, sceneP);
+          if (mobile) {
+            drawMobileVerificationGrid(p, sceneP);
+          } else {
+            drawVerificationGrid(p, sceneP);
+          }
         }
 
         if (prog >= 0.69 && prog <= 0.88) {
           const sceneP = clamp01((prog - 0.71) / 0.15);
-          drawAccumulationCounter(p, sceneP);
+          if (mobile) {
+            drawMobileAccumulationCounter(p, sceneP);
+          } else {
+            drawAccumulationCounter(p, sceneP);
+          }
         }
       };
 
@@ -207,13 +230,13 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
       }
 
       // ─── Scene 2: Decision Tree ────────────────────────────────
-      // Full-width tree with thick glowing branches and animated path tracing
+      // 5-level binary tree with progressive reveal, electricity pulses, leaf labels
       function drawDecisionTree(p: p5, sceneP: number) {
         const rootX = p.width / 2;
-        const rootY = p.height * 0.08;
-        const hSpread = p.width * 0.42;
-        const vSpacing = p.height * 0.21;
-        const levels = 4;
+        const rootY = p.height * 0.05;
+        const hSpread = p.width * 0.44;
+        const levels = 5;
+        const vSpacing = (p.height * 0.82) / (levels - 1);
 
         interface TreeNode {
           x: number;
@@ -248,107 +271,169 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
           }
         }
 
-        const leafLabelsLeft = ["DESIGN", "TRUST", "VOICE", "JUDGE"];
-        const leafLabelsRight = ["DEPLOY", "GENERATE", "VALIDATE", "SCALE"];
+        // Labels for the 16 leaf nodes (level 4), paired left(human)/right(delegated)
+        const leafLabelsLeft = ["DESIGN", "NARRATIVE", "TRUST", "STRATEGY", "VOICE", "TASTE", "JUDGMENT", "ETHICS"];
+        const leafLabelsRight = ["LAYOUT", "FORMATTING", "DEPLOY", "PIPELINE", "GENERATE", "COMPILE", "VALIDATE", "SCALE"];
+
+        // Colors
+        const cyanR = 0, cyanG = 229, cyanB = 255;
+        const violetR = 130, violetG = 100, violetB = 220;
 
         // Draw branches and nodes with progressive reveal
         for (const node of nodes) {
-          // Each level reveals at a different progress threshold
-          const levelThreshold = node.level * 0.22;
-          const levelProgress = clamp01((sceneP - levelThreshold) / 0.2);
+          // Slower reveal: each level takes 0.15 of sceneP, spaced 0.17 apart
+          const levelThreshold = node.level * 0.17;
+          const levelProgress = clamp01((sceneP - levelThreshold) / 0.18);
           if (levelProgress <= 0) continue;
 
           const isLeftBranch = node.isLeft;
-
-          // Branch colors: left = cyan (human), right = violet (delegated)
-          const cyanR = 0, cyanG = 229, cyanB = 255;
-          const violetR = 130, violetG = 100, violetB = 220;
           const bR = isLeftBranch ? cyanR : violetR;
           const bG = isLeftBranch ? cyanG : violetG;
           const bB = isLeftBranch ? cyanB : violetB;
           const branchAlpha = levelProgress * 220;
 
-          // Draw branch line from parent with glow
+          // Draw branch line from parent
           if (node.level > 0) {
-            // Glow layer
-            p.strokeWeight(5);
-            p.stroke(bR, bG, bB, branchAlpha * 0.1);
             const drawLen = smoothstep(levelProgress);
             const dx = node.x - node.parentX;
             const dy = node.y - node.parentY;
-            p.line(node.parentX, node.parentY, node.parentX + dx * drawLen, node.parentY + dy * drawLen);
+            const endX = node.parentX + dx * drawLen;
+            const endY = node.parentY + dy * drawLen;
+
+            // Glow layer
+            p.strokeWeight(6);
+            p.stroke(bR, bG, bB, branchAlpha * 0.08);
+            p.line(node.parentX, node.parentY, endX, endY);
 
             // Main line
-            p.strokeWeight(2.5);
+            p.strokeWeight(2);
             p.stroke(bR, bG, bB, branchAlpha);
-            p.line(node.parentX, node.parentY, node.parentX + dx * drawLen, node.parentY + dy * drawLen);
+            p.line(node.parentX, node.parentY, endX, endY);
 
-            // Animated electricity pulse traveling down the branch
-            const pulseT = ((p.frameCount * 0.03 + node.index * 0.7) % 1);
-            const px = node.parentX + dx * pulseT * drawLen;
-            const py = node.parentY + dy * pulseT * drawLen;
-            p.noStroke();
-            p.fill(255, 255, 255, branchAlpha * 0.35);
-            p.circle(px, py, 4);
-            p.fill(bR, bG, bB, branchAlpha * 0.12);
-            p.circle(px, py, 10);
+            // Electricity pulse traveling down the branch
+            if (levelProgress > 0.3) {
+              const pulseT = ((p.frameCount * 0.025 + node.index * 0.7 + node.level * 1.3) % 1);
+              const px = node.parentX + dx * pulseT * drawLen;
+              const py = node.parentY + dy * pulseT * drawLen;
+              p.noStroke();
+              p.fill(255, 255, 255, branchAlpha * 0.4);
+              p.circle(px, py, 3);
+              p.fill(bR, bG, bB, branchAlpha * 0.15);
+              p.circle(px, py, 8);
+            }
           }
 
           // Draw node
           p.noStroke();
-          // Outer glow
-          p.fill(bR, bG, bB, branchAlpha * 0.1);
-          p.circle(node.x, node.y, 24 * levelProgress);
+          const nodePulse = 1 + Math.sin(p.frameCount * 0.04 + node.index * 2) * 0.12;
+
+          // Outer glow ring
+          p.fill(bR, bG, bB, branchAlpha * 0.06);
+          p.circle(node.x, node.y, 28 * levelProgress * nodePulse);
+
           // Inner fill
           p.fill(bR, bG, bB, branchAlpha);
-          const nodeSize = node.level === 0 ? 20 : node.level === levels - 1 ? 14 : 16;
-          p.circle(node.x, node.y, nodeSize * levelProgress);
+          const baseSize = node.level === 0 ? 18 : node.level === levels - 1 ? 10 : 14 - node.level;
+          p.circle(node.x, node.y, baseSize * levelProgress);
+
+          // Bright center dot
+          if (levelProgress > 0.5) {
+            p.fill(255, 255, 255, branchAlpha * 0.5);
+            p.circle(node.x, node.y, 3 * levelProgress);
+          }
 
           // Leaf labels (bottom level)
-          if (node.level === levels - 1 && levelProgress > 0.5) {
-            const labelAlpha = (levelProgress - 0.5) * 2 * 200;
-            p.textSize(11);
+          if (node.level === levels - 1 && levelProgress > 0.6) {
+            const labelAlpha = (levelProgress - 0.6) * 2.5 * 180;
+            p.textSize(9);
             p.textAlign(p.CENTER, p.TOP);
             p.fill(bR, bG, bB, labelAlpha);
             const leafIdx = Math.floor(node.index / 2);
             const label = isLeftBranch ? leafLabelsLeft[leafIdx] : leafLabelsRight[leafIdx];
-            p.text(label, node.x, node.y + 14);
+            p.text(label, node.x, node.y + 10);
 
             // Category indicator
-            p.textSize(8);
-            p.fill(184, 176, 200, labelAlpha * 0.6);
-            p.text(isLeftBranch ? "HUMAN" : "DELEGATED", node.x, node.y + 28);
+            p.textSize(7);
+            p.fill(184, 176, 200, labelAlpha * 0.5);
+            p.text(isLeftBranch ? "HUMAN" : "DELEGATED", node.x, node.y + 22);
+          }
+        }
+
+        // Horizontal connecting lines between sibling leaf pairs
+        if (sceneP > 0.85) {
+          const connectAlpha = smoothstep((sceneP - 0.85) / 0.15) * 80;
+          const leafNodes = nodes.filter(n => n.level === levels - 1);
+          p.stroke(184, 176, 200, connectAlpha);
+          p.strokeWeight(0.5);
+          for (let i = 0; i < leafNodes.length; i += 2) {
+            if (i + 1 < leafNodes.length) {
+              // Dotted line between pairs
+              const lx = leafNodes[i].x;
+              const rx = leafNodes[i + 1].x;
+              const ly = leafNodes[i].y;
+              const segments = 12;
+              for (let s = 0; s < segments; s += 2) {
+                const t1 = s / segments;
+                const t2 = (s + 1) / segments;
+                p.line(lx + (rx - lx) * t1, ly, lx + (rx - lx) * t2, ly);
+              }
+            }
           }
         }
 
         // Root label
-        if (sceneP > 0.05) {
+        if (sceneP > 0.03) {
+          const rootAlpha = Math.min(200, sceneP * 300);
           p.textSize(10);
           p.textAlign(p.CENTER, p.BOTTOM);
-          p.fill(0, 229, 255, Math.min(200, sceneP * 400));
-          p.text("ORCHESTRATOR", rootX, rootY - 16);
+          p.fill(0, 229, 255, rootAlpha);
+          p.noStroke();
+          p.text("ORCHESTRATOR", rootX, rootY - 14);
 
           // Blinking cursor
           if (Math.sin(p.frameCount * 0.08) > 0) {
-            p.fill(0, 229, 255, 180);
-            p.rect(rootX + 48, rootY - 26, 2, 14);
+            p.fill(0, 229, 255, rootAlpha * 0.8);
+            p.rect(rootX + 48, rootY - 24, 2, 12);
+          }
+        }
+
+        // Level labels on the left edge
+        if (sceneP > 0.5) {
+          const labelAlpha = smoothstep((sceneP - 0.5) / 0.3) * 100;
+          const levelNames = ["DECISION", "DOMAIN", "CATEGORY", "TASK", "EXECUTION"];
+          p.textSize(8);
+          p.textAlign(p.LEFT, p.CENTER);
+          p.fill(184, 176, 200, labelAlpha);
+          p.noStroke();
+          for (let l = 0; l < levels; l++) {
+            p.text(levelNames[l], 12, rootY + l * vSpacing);
           }
         }
 
         // Legend at bottom
-        if (sceneP > 0.4) {
-          const legendAlpha = smoothstep((sceneP - 0.4) / 0.3) * 160;
-          p.textSize(11);
+        if (sceneP > 0.35) {
+          const legendAlpha = smoothstep((sceneP - 0.35) / 0.25) * 150;
+          p.textSize(10);
           p.textAlign(p.CENTER, p.CENTER);
-          const legendY = p.height * 0.92;
+          const legendY = p.height * 0.96;
+          p.noStroke();
           p.fill(0, 229, 255, legendAlpha);
-          p.circle(p.width * 0.38, legendY, 8);
+          p.circle(p.width * 0.35, legendY, 7);
           p.fill(184, 176, 200, legendAlpha);
-          p.text("stays human", p.width * 0.38 + 60, legendY);
+          p.text("stays human", p.width * 0.35 + 55, legendY);
           p.fill(130, 100, 220, legendAlpha);
-          p.circle(p.width * 0.62, legendY, 8);
+          p.circle(p.width * 0.58, legendY, 7);
           p.fill(184, 176, 200, legendAlpha);
-          p.text("gets delegated", p.width * 0.62 + 60, legendY);
+          p.text("gets delegated", p.width * 0.58 + 60, legendY);
+
+          // Stats counter
+          const revealed = nodes.filter(n => {
+            const lt = n.level * 0.17;
+            return clamp01((sceneP - lt) / 0.18) > 0.5;
+          }).length;
+          p.textSize(9);
+          p.fill(0, 229, 255, legendAlpha * 0.7);
+          p.text(`${revealed}/${nodes.length} decisions mapped`, p.width * 0.5, legendY - 16);
         }
       }
 
@@ -637,6 +722,231 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
           p.text(labels[i], x, y + 48);
         }
       }
+
+      // ─── MOBILE VARIANTS ─────────────────────────────────────
+      // Simplified versions with reduced grid sizes and lower draw cost
+
+      function drawMobileInventoryGrid(p: p5, sceneP: number) {
+        const cols = 10;
+        const rows = 6;
+        const cellSize = Math.min((p.width - 40) / (cols + 1), (p.height * 0.45) / (rows + 1));
+        const gap = cellSize * 0.2;
+        const totalCell = cellSize + gap;
+        const gridW = cols * totalCell;
+        const gridH = rows * totalCell;
+        const originX = (p.width - gridW) / 2;
+        const originY = p.height * 0.15;
+        const scanX = originX + sceneP * (gridW + totalCell * 2);
+        const scanBand = totalCell * 2;
+
+        // Scanner glow
+        p.noStroke();
+        for (let i = 0; i < 15; i++) {
+          const a = (1 - i / 15) * 50 * Math.min(1, sceneP * 5);
+          p.fill(0, 229, 255, a);
+          p.rect(scanX - i * 3, originY - gap, 3, gridH + gap * 2);
+        }
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const x = originX + col * totalCell;
+            const y = originY + row * totalCell;
+            const cx = x + cellSize / 2;
+            if (cx < scanX - scanBand) {
+              const isCyan = (col + row) % 3 !== 0;
+              p.fill(isCyan ? [0, 229, 255, 160] : [106, 93, 186, 140]);
+              p.noStroke();
+              p.rect(x, y, cellSize, cellSize, 2);
+            } else if (cx < scanX && cx >= scanX - scanBand) {
+              const blinkAlpha = 50 + Math.sin(p.frameCount * 0.2 + col) * 30;
+              p.noStroke();
+              p.fill(0, 229, 255, blinkAlpha);
+              p.rect(x, y, cellSize, cellSize, 2);
+            } else {
+              p.noFill();
+              p.stroke(45, 27, 105, 25);
+              p.strokeWeight(0.5);
+              p.rect(x, y, cellSize, cellSize, 2);
+            }
+          }
+        }
+
+        const revealed = Math.floor(sceneP * cols * rows);
+        p.textAlign(p.RIGHT, p.BOTTOM);
+        p.textSize(11);
+        p.noStroke();
+        p.fill(0, 229, 255, 160);
+        p.text(`${revealed}/${cols * rows} catalogued`, originX + gridW, originY - 6);
+      }
+
+      function drawMobileDecisionTree(p: p5, sceneP: number) {
+        const rootX = p.width / 2;
+        const rootY = p.height * 0.12;
+        const levels = 3;
+        const hSpread = p.width * 0.38;
+        const vSpacing = p.height * 0.28;
+
+        interface MNode { x: number; y: number; level: number; parentX: number; parentY: number; isLeft: boolean }
+        const nodes: MNode[] = [];
+        nodes.push({ x: rootX, y: rootY, level: 0, parentX: 0, parentY: 0, isLeft: true });
+
+        for (let level = 1; level < levels; level++) {
+          const count = Math.pow(2, level);
+          const spread = hSpread / Math.pow(2, level - 1);
+          for (let i = 0; i < count; i++) {
+            const parentIdx = Math.floor(i / 2);
+            const actualParent = nodes.filter(n => n.level === level - 1)[parentIdx];
+            const isLeft = i % 2 === 0;
+            const offsetX = isLeft ? -spread / 2 : spread / 2;
+            nodes.push({
+              x: actualParent.x + offsetX,
+              y: rootY + level * vSpacing,
+              level,
+              parentX: actualParent.x,
+              parentY: actualParent.y,
+              isLeft,
+            });
+          }
+        }
+
+        const cyanR = 0, cyanG = 229, cyanB = 255;
+        const violetR = 130, violetG = 100, violetB = 220;
+
+        for (const node of nodes) {
+          const lt = node.level * 0.25;
+          const lp = clamp01((sceneP - lt) / 0.3);
+          if (lp <= 0) continue;
+
+          const bR = node.isLeft ? cyanR : violetR;
+          const bG = node.isLeft ? cyanG : violetG;
+          const bB = node.isLeft ? cyanB : violetB;
+          const alpha = lp * 200;
+
+          if (node.level > 0) {
+            const dl = smoothstep(lp);
+            const dx = node.x - node.parentX;
+            const dy = node.y - node.parentY;
+            p.strokeWeight(2);
+            p.stroke(bR, bG, bB, alpha);
+            p.line(node.parentX, node.parentY, node.parentX + dx * dl, node.parentY + dy * dl);
+          }
+
+          p.noStroke();
+          p.fill(bR, bG, bB, alpha * 0.08);
+          p.circle(node.x, node.y, 24 * lp);
+          p.fill(bR, bG, bB, alpha);
+          const size = node.level === 0 ? 14 : 10;
+          p.circle(node.x, node.y, size * lp);
+
+          // Labels on leaf nodes
+          if (node.level === levels - 1 && lp > 0.6) {
+            const la = (lp - 0.6) * 2.5 * 160;
+            p.textSize(9);
+            p.textAlign(p.CENTER, p.TOP);
+            p.fill(bR, bG, bB, la);
+            p.text(node.isLeft ? "HUMAN" : "DELEGATED", node.x, node.y + 12);
+          }
+        }
+
+        if (sceneP > 0.03) {
+          p.textSize(9);
+          p.textAlign(p.CENTER, p.BOTTOM);
+          p.fill(0, 229, 255, Math.min(180, sceneP * 300));
+          p.noStroke();
+          p.text("ORCHESTRATOR", rootX, rootY - 12);
+        }
+      }
+
+      function drawMobileVerificationGrid(p: p5, sceneP: number) {
+        const cols = 10;
+        const rows = 6;
+        const cellSize = Math.min((p.width - 40) / (cols + 1), (p.height * 0.45) / (rows + 1));
+        const gap = cellSize * 0.2;
+        const totalCell = cellSize + gap;
+        const gridW = cols * totalCell;
+        const gridH = rows * totalCell;
+        const originX = (p.width - gridW) / 2;
+        const originY = (p.height - gridH) / 2 - p.height * 0.05;
+        const centerX = originX + gridW / 2;
+        const centerY = originY + gridH / 2;
+        const maxR = Math.sqrt(gridW * gridW + gridH * gridH) / 2;
+        const rippleR = sceneP * maxR * 1.2;
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const x = originX + col * totalCell;
+            const y = originY + row * totalCell;
+            const cx = x + cellSize / 2;
+            const cy = y + cellSize / 2;
+            const dist = Math.sqrt((cx - centerX) ** 2 + (cy - centerY) ** 2);
+
+            if (dist < rippleR - cellSize * 2) {
+              p.noStroke();
+              p.fill(0, 229, 255, 180);
+              p.rect(x, y, cellSize, cellSize, 1);
+              // Checkmark
+              p.stroke(13, 10, 26, 200);
+              p.strokeWeight(1.5);
+              p.noFill();
+              p.line(x + cellSize * 0.25, y + cellSize * 0.55, x + cellSize * 0.45, y + cellSize * 0.75);
+              p.line(x + cellSize * 0.45, y + cellSize * 0.75, x + cellSize * 0.75, y + cellSize * 0.3);
+            } else if (dist < rippleR) {
+              p.noStroke();
+              p.fill(0, 229, 255, 60 + Math.sin(p.frameCount * 0.15 + dist * 0.05) * 40);
+              p.rect(x, y, cellSize, cellSize, 1);
+            } else {
+              p.noFill();
+              p.stroke(45, 27, 105, 25);
+              p.strokeWeight(0.5);
+              p.rect(x, y, cellSize, cellSize, 1);
+            }
+          }
+        }
+
+        const verified = Math.floor(sceneP * cols * rows);
+        p.textAlign(p.RIGHT, p.BOTTOM);
+        p.textSize(11);
+        p.noStroke();
+        p.fill(0, 229, 255, 160);
+        p.text(`${verified}/${cols * rows} verified`, originX + gridW, originY - 6);
+      }
+
+      function drawMobileAccumulationCounter(p: p5, sceneP: number) {
+        const eased = smoothstep(sceneP);
+        const targets = [69, 45, 2, 1];
+        const labels = ["SITES", "REPOS", "CLIENTS", "LLC"];
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+        const spacing = Math.min(p.width * 0.28, 100);
+
+        const positions = [
+          { x: cx - spacing, y: cy - spacing * 0.7 },
+          { x: cx + spacing, y: cy - spacing * 0.7 },
+          { x: cx - spacing, y: cy + spacing * 0.7 },
+          { x: cx + spacing, y: cy + spacing * 0.7 },
+        ];
+
+        for (let i = 0; i < 4; i++) {
+          const val = Math.floor(eased * targets[i]);
+          const { x, y } = positions[i];
+
+          p.noStroke();
+          p.fill(0, 229, 255, 20 * eased);
+          p.circle(x, y, 70);
+
+          p.textFont("monospace");
+          p.textSize(48);
+          p.textAlign(p.CENTER, p.CENTER);
+          p.fill(0, 229, 255, 30);
+          p.text(String(val), x + 1, y + 1);
+          p.fill(245, 240, 232, 220);
+          p.text(String(val), x, y);
+
+          p.textSize(10);
+          p.fill(0, 229, 255, 140);
+          p.text(labels[i], x, y + 32);
+        }
+      }
     };
 
     p5Ref.current = new p5(sketch, containerRef.current);
@@ -645,7 +955,7 @@ export default function P5Overlay({ progress }: P5OverlayProps) {
       p5Ref.current?.remove();
       p5Ref.current = null;
     };
-  }, []);
+  }, [isMobile]);
 
   return (
     <div

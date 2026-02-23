@@ -59,12 +59,13 @@ export function DecisionParticles({
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        color="#2D1B69"
+        color={isMobile ? "#6a4aba" : "#2D1B69"}
         transparent
-        opacity={0.15}
-        size={0.08}
+        opacity={isMobile ? 0.4 : 0.15}
+        size={isMobile ? 0.15 : 0.08}
         sizeAttenuation
         depthWrite={false}
+        blending={THREE.AdditiveBlending}
       />
     </points>
   );
@@ -154,10 +155,10 @@ export function DecisionGlow({ progress }: { progress: number }) {
   );
 }
 
-export function DecisionLighting() {
+export function DecisionLighting({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <>
-      <ambientLight intensity={0.02} />
+      <ambientLight intensity={isMobile ? 0.08 : 0.02} />
     </>
   );
 }

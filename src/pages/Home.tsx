@@ -36,7 +36,7 @@ export default function Home() {
       <Suspense fallback={<LoadingScreen />}>
         <Experience3D progress={progress} isMobile={device.isMobile || device.isTablet} />
       </Suspense>
-      {!device.isMobile && <P5Overlay progress={progress} />}
+      <P5Overlay progress={progress} isMobile={device.isMobile} />
       <TextOverlay progress={progress} isMobile={device.isMobile} />
       <AudioToggle isPlaying={isPlaying} onToggle={toggleAudio} progress={progress} />
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 5, background: "radial-gradient(ellipse at center, transparent 40%, rgba(13, 10, 26, 0.65) 100%)" }} />

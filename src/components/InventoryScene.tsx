@@ -57,9 +57,9 @@ export function InventoryObjects({
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
       <boxGeometry args={[0.1, 0.1, 0.1]} />
       <meshBasicMaterial
-        color="#1a1540"
+        color={isMobile ? "#4a3580" : "#1a1540"}
         transparent
-        opacity={0.2}
+        opacity={isMobile ? 0.5 : 0.2}
       />
     </instancedMesh>
   );
@@ -113,10 +113,10 @@ export function InventoryGlow({ progress }: { progress: number }) {
   );
 }
 
-export function InventoryLighting() {
+export function InventoryLighting({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <>
-      <ambientLight intensity={0.02} />
+      <ambientLight intensity={isMobile ? 0.08 : 0.02} />
     </>
   );
 }

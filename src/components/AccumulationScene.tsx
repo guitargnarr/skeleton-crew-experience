@@ -69,12 +69,13 @@ export function AccumulationStars({
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        color="#2D1B69"
+        color={isMobile ? "#6a4aba" : "#2D1B69"}
         transparent
-        opacity={0.15}
-        size={0.06}
+        opacity={isMobile ? 0.4 : 0.15}
+        size={isMobile ? 0.12 : 0.06}
         sizeAttenuation
         depthWrite={false}
+        blending={THREE.AdditiveBlending}
       />
     </points>
   );
@@ -112,7 +113,7 @@ export function AccumulationEdges({
     if (!linesRef.current) return;
     const mat = linesRef.current.material as THREE.LineBasicMaterial;
     const edgeP = Math.max(0, (sceneP - 0.3) / 0.7);
-    mat.opacity = smoothstep(edgeP) * 0.08;
+    mat.opacity = smoothstep(edgeP) * (isMobile ? 0.2 : 0.08);
   });
 
   return (
@@ -216,10 +217,10 @@ export function AccumulationCentralNode({ progress }: { progress: number }) {
   );
 }
 
-export function AccumulationLighting() {
+export function AccumulationLighting({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <>
-      <ambientLight intensity={0.02} />
+      <ambientLight intensity={isMobile ? 0.08 : 0.02} />
     </>
   );
 }
